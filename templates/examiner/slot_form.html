@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit Slot #{{ slot.slot_id }} - EMP Examiner{% else %}Create Examination Slot - EMP Examiner{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="emp-card">
+      <div class="emp-card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">
+          <i class="bi bi-calendar-plus text-primary me-2"></i>
+          {% if is_edit %}Edit Slot #{{ slot.slot_id }}{% else %}Schedule New Examination Slot{% endif %}
+        </h5>
+        <a href="{{ url_for('examiner.slots') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i> Back to Slots
+        </a>
+      </div>
+
+      <div class="p-4">
+        <form method="POST">
+          <div class="mb-3">
+            <label for="examination_id" class="form-label fw-semibold">Target Examination <span class="text-danger">*</span></label>
+            {% if is_edit %}
+              <input type="text" class="form-control" value="{{ slot.examination.course.course_code }} - {{ slot.examination.examination_name }}" disabled>
+              <input type="hidden" name="examination_id" value="{{ slot.examination_id }}">
+            {% else %}
+              <select class="form-select" id="examination_id" name="examination_id" required>
+                <option value="">-- Select Examination --</option>
+                {% for exam in examinations %}
+                  <option value="{{ exam.exam_id }}" {% if selected_exam and selected_exam.exam_id == exam.exam_id %}selected{% endif %}>
+                    {{ exam.course.course_code }} - {{ exam.examination_name }} ({{ exam.examination_type }})
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="form-text">Note: Slot creation is only permitted during the examination's designated slot creation period.</div>
+            {% endif %}
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label for="date" class="form-label fw-semibold">Slot Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" id="date" name="date"
+                     value="{% if is_edit %}{{ slot.date.isoformat() }}{% endif %}" required>
+            </div>
+            <div class="col-md-4">
+              <label for="start_time" class="form-label fw-semibold">Start Time <span class="text-danger">*</span></label>
+              <input type="time" class="form-control" id="start_time" name="start_time"
+                     value="{% if is_edit %}{{ slot.start_time.strftime('%H:%M') }}{% endif %}" required>
+            </div>
+            <div class="col-md-4">
+              <label for="end_time" class="form-label fw-semibold">End Time <span class="text-danger">*</span></label>
+              <input type="time" class="form-control" id="end_time" name="end_time"
+                     value="{% if is_edit %}{{ slot.end_time.strftime('%H:%M') }}{% endif %}" required>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label for="maximum_student_capacity" class="form-label fw-semibold">Maximum Student Capacity <span class="text-danger">*</span></label>
+            <input type="number" class="form-control w-50" id="maximum_student_capacity" name="maximum_student_capacity" min="1" max="100"
+                   value="{% if is_edit %}{{ slot.maximum_student_capacity }}{% else %}2{% endif %}" required>
+            <div class="form-text">Number of students who can concurrently book this time slot (e.g. 1 for 1-on-1 viva, or multiple for group demonstrations).</div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 border-top pt-3">
+            <a href="{{ url_for('examiner.slots') }}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-emp-primary px-4 fw-semibold">
+              <i class="bi bi-check2-circle me-1"></i> {% if is_edit %}Update Slot{% else %}Schedule Slot{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

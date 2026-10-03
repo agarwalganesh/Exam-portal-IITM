@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Account Pending Approval - EMP{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card text-center" style="max-width: 520px;">
+    <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 70px; height: 70px;">
+      <i class="bi bi-hourglass-split fs-1 text-warning"></i>
+    </div>
+    <h3 class="fw-bold mb-2">Registration Pending Approval</h3>
+    <p class="text-muted">
+      Thank you for registering as an Examiner in the Examination Management Portal.
+    </p>
+
+    <div class="alert alert-warning text-start my-4">
+      <h6 class="fw-bold"><i class="bi bi-info-circle me-1"></i> Under Administrative Review</h6>
+      <p class="small mb-0">
+        Your account is currently in <strong>Pending</strong> status. An Administrator must verify and approve your academic credentials before you can access the Examiner dashboard, manage examination slots, or evaluate students.
+      </p>
+    </div>
+
+    <p class="small text-muted mb-4">
+      If you are the portal reviewer testing this system, log in as <strong>Admin</strong> (<code>admin@emp.iitm.ac.in</code> / <code>Admin@123</code>) and approve this examiner account from the <strong>Examiners</strong> management page.
+    </p>
+
+    <div class="d-flex justify-content-center gap-2">
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">
+        <i class="bi bi-box-arrow-right me-1"></i> Logout
+      </a>
+      <a href="{{ url_for('auth.login') }}" class="btn btn-emp-primary">
+        <i class="bi bi-arrow-repeat me-1"></i> Try Log In Again
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

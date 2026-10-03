@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Global Search - EMP Admin{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h2 class="fw-bold mb-1"><i class="bi bi-search text-primary me-2"></i>Global Portal Search</h2>
+  <p class="text-muted mb-0">Search seamlessly across students, examiners, examinations, and booking histories.</p>
+</div>
+
+<!-- Search Input Card -->
+<div class="emp-card p-4 mb-4">
+  <form method="GET" action="{{ url_for('admin.search') }}">
+    <div class="input-group input-group-lg">
+      <span class="input-group-text bg-white"><i class="bi bi-search text-primary"></i></span>
+      <input type="text" name="q" class="form-control" placeholder="Search by name, email, course code, examination, or department..." value="{{ query }}" autofocus required>
+      <button type="submit" class="btn btn-emp-primary px-4 fw-semibold">Search Portal</button>
+    </div>
+  </form>
+</div>
+
+{% if query %}
+  <h5 class="fw-bold mb-3">Search Results for "<span class="text-primary">{{ query }}</span>"</h5>
+
+  <!-- 1. Examinations -->
+  <div class="emp-card mb-4">
+    <div class="emp-card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-file-earmark-text text-primary me-2"></i>Examinations ({{ results.examinations|length }})</span>
+    </div>
+    <div class="table-responsive">
+      <table class="emp-table">
+        <thead>
+          <tr>
+            <th>Course</th>
+            <th>Examination Name</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for exam in results.examinations %}
+          <tr>
+            <td><span class="badge bg-secondary">{{ exam.course.course_code }}</span></td>
+            <td class="fw-bold">{{ exam.examination_name }}</td>
+            <td><span class="badge bg-light text-dark border">{{ exam.examination_type }}</span></td>
+            <td><span class="badge bg-info text-dark">{{ exam.status }}</span></td>
+            <td class="text-end">
+              <a href="{{ url_for('admin.examination_detail', exam_id=exam.exam_id) }}" class="btn btn-sm btn-outline-primary">View</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center py-3 text-muted">No matching examinations found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 2. Students -->
+  <div class="emp-card mb-4">
+    <div class="emp-card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-mortarboard text-success me-2"></i>Students ({{ results.students|length }})</span>
+    </div>
+    <div class="table-responsive">
+      <table class="emp-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Student Name</th>
+            <th>Email</th>
+            <th>Bookings Count</th>
+            <th>Registered On</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in results.students %}
+          <tr>
+            <td class="fw-bold">#{{ s.id }}</td>
+            <td class="fw-semibold">{{ s.name }}</td>
+            <td>{{ s.email }}</td>
+            <td><span class="badge bg-light text-dark border">{{ s.bookings|length }} booking(s)</span></td>
+            <td class="text-muted small">{{ s.created_at | date_format }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center py-3 text-muted">No matching students found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3. Examiners -->
+  <div class="emp-card mb-4">
+    <div class="emp-card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-people text-info me-2"></i>Examiners ({{ results.examiners|length }})</span>
+    </div>
+    <div class="table-responsive">
+      <table class="emp-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Examiner Name</th>
+            <th>Email</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ex in results.examiners %}
+          <tr>
+            <td class="fw-bold">#{{ ex.id }}</td>
+            <td class="fw-semibold">{{ ex.name }}</td>
+            <td>{{ ex.email }}</td>
+            <td>{{ ex.examiner_profile.department if ex.examiner_profile else 'N/A' }}</td>
+            <td>
+              {% if ex.status == 'active' %}
+                <span class="badge bg-success">Active</span>
+              {% elif ex.status == 'pending' %}
+                <span class="badge bg-warning text-dark">Pending</span>
+              {% else %}
+                <span class="badge bg-danger">Inactive</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{{ url_for('admin.examiner_detail', user_id=ex.id) }}" class="btn btn-sm btn-outline-secondary">View Profile</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="text-center py-3 text-muted">No matching examiners found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4. Bookings -->
+  <div class="emp-card">
+    <div class="emp-card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-ticket-perforated text-warning me-2"></i>Bookings ({{ results.bookings|length }})</span>
+    </div>
+    <div class="table-responsive">
+      <table class="emp-table">
+        <thead>
+          <tr>
+            <th>Booking ID</th>
+            <th>Student</th>
+            <th>Examination</th>
+            <th>Slot Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in results.bookings %}
+          <tr>
+            <td class="fw-bold">#{{ b.booking_id }}</td>
+            <td>{{ b.student.name }}</td>
+            <td>{{ b.slot.examination.examination_name }}</td>
+            <td>{{ b.slot.date | date_format }}</td>
+            <td><span class="badge bg-secondary">{{ b.status }}</span></td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center py-3 text-muted">No matching bookings found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

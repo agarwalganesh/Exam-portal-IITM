@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Examiner Registration - EMP{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card" style="max-width: 540px;">
+    <div class="text-center mb-4">
+      <div class="d-inline-flex align-items-center justify-content-center bg-info bg-opacity-10 text-primary rounded-circle mb-3" style="width: 60px; height: 60px;">
+        <i class="bi bi-person-workspace fs-2 text-primary"></i>
+      </div>
+      <h3 class="fw-bold mb-1">Examiner Registration</h3>
+      <p class="text-muted small">Register as an Academic Examiner. Registration requires Administrator approval.</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.register_examiner') }}">
+      <div class="mb-3">
+        <label for="name" class="form-label fw-semibold">Full Name & Title</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input type="text" class="form-control" id="name" name="name" value="{{ name or '' }}" placeholder="Dr. John Doe / Prof. Jane Smith" required>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="email" class="form-label fw-semibold">Academic Email Address</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+          <input type="email" class="form-control" id="email" name="email" value="{{ email or '' }}" placeholder="john.doe@emp.iitm.ac.in" required>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="department" class="form-label fw-semibold">Academic Department</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-building"></i></span>
+          <input type="text" class="form-control" id="department" name="department" value="{{ department or '' }}" placeholder="Computer Science & Engineering" required>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="contact_details" class="form-label fw-semibold">Contact Number / Office Details</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+          <input type="text" class="form-control" id="contact_details" name="contact_details" value="{{ contact_details or '' }}" placeholder="+91 98765 43210 / Room 302, CS Block">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label for="password" class="form-label fw-semibold">Password</label>
+          <input type="password" class="form-control" id="password" name="password" placeholder="At least 6 chars" required>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label for="confirm_password" class="form-label fw-semibold">Confirm Password</label>
+          <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Repeat password" required>
+        </div>
+      </div>
+
+      <div class="alert alert-info py-2 small mb-3">
+        <i class="bi bi-shield-exclamation me-1"></i>
+        Newly registered examiners remain in <strong>Pending</strong> status until verified and approved by the Administrator.
+      </div>
+
+      <button type="submit" class="btn btn-emp-primary w-100 py-2 fw-semibold">
+        <i class="bi bi-send-check me-1"></i> Submit Examiner Registration
+      </button>
+    </form>
+
+    <div class="mt-4 pt-3 border-top text-center">
+      <span class="small text-muted">Already registered?</span>
+      <a href="{{ url_for('auth.login') }}" class="small fw-semibold ms-1">Sign In</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

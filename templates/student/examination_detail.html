@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ exam.examination_name }} - EMP Student{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-primary">{{ exam.course.course_code }}</span>
+      <h2 class="fw-bold mb-0">{{ exam.examination_name }}</h2>
+      <span class="badge bg-secondary">{{ exam.examination_type }}</span>
+    </div>
+    <p class="text-muted mb-0">{{ exam.course.course_name }} &bull; Max Marks: <strong>{{ exam.maximum_marks }}</strong> &bull; Duration: <strong>{{ exam.duration }} mins</strong></p>
+  </div>
+  <div>
+    <a href="{{ url_for('student.examinations') }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Back to Examinations
+    </a>
+  </div>
+</div>
+
+{% if existing_booking %}
+<div class="alert alert-success d-flex align-items-center justify-content-between shadow-sm mb-4">
+  <div class="d-flex align-items-center">
+    <i class="bi bi-check-circle-fill fs-3 text-success me-3"></i>
+    <div>
+      <h6 class="mb-0 fw-bold">You are already registered for this examination!</h6>
+      <p class="small mb-0 text-muted">
+        Slot: <strong>{{ existing_booking.slot.date | date_format }}</strong> ({{ existing_booking.slot.start_time | time_format }} &ndash; {{ existing_booking.slot.end_time | time_format }}) with Examiner <strong>{{ existing_booking.slot.examiner.name }}</strong>.
+      </p>
+    </div>
+  </div>
+  <a href="{{ url_for('student.my_bookings') }}" class="btn btn-success btn-sm fw-semibold">
+    Manage Booking <i class="bi bi-arrow-right ms-1"></i>
+  </a>
+</div>
+{% endif %}
+
+<!-- Timeline & Rubrics Row -->
+<div class="row g-4 mb-4">
+  <div class="col-md-5">
+    <div class="emp-card p-3 h-100">
+      <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-calendar-event me-2 text-primary"></i>Booking Information</h6>
+      <div class="mb-2">
+        <span class="text-muted small d-block">Student Booking Window:</span>
+        <strong class="{% if is_booking_open %}text-success{% else %}text-muted{% endif %}">
+          {{ exam.slot_booking_start | datetime_format }} <br>&rarr; {{ exam.slot_booking_end | datetime_format }}
+        </strong>
+      </div>
+      <div class="mb-3">
+        <span class="text-muted small d-block">Booking Status:</span>
+        {% if is_booking_open %}
+          <span class="badge badge-status-open"><i class="bi bi-door-open me-1"></i>Open For Booking</span>
+        {% elif now < exam.slot_booking_start %}
+          <span class="badge bg-secondary">Booking Not Yet Started</span>
+        {% else %}
+          <span class="badge bg-secondary">Booking Deadline Passed</span>
+        {% endif %}
+      </div>
+      <div class="text-muted small">
+        <i class="bi bi-info-circle me-1"></i> Please note: You may book only one time slot per examination. Cancellations are permitted until the booking window closes.
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="emp-card p-3 h-100">
+      <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-list-check me-2 text-primary"></i>Grading Criteria & Rubrics</h6>
+      {% if rubrics %}
+        <div class="list-group list-group-flush">
+          {% for r in rubrics %}
+            <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+              <div>
+                <strong class="text-dark">{{ r.criterion_name }}</strong>
+                <div class="text-muted small">{{ r.description or 'Evaluated based on standard rubric guidelines.' }}</div>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">{{ r.maximum_marks }} pts</span>
+                <span class="small text-muted d-block">{{ r.weightage }}% weight</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted small mb-0">Grading rubric details will be displayed once published by the academic administrator.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Slots Available for Booking -->
+<div class="emp-card">
+  <div class="emp-card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-calendar3 me-2 text-primary"></i>Available Examination Slots ({{ slots|length }})</h5>
+  </div>
+  <div class="table-responsive">
+    <table class="emp-table">
+      <thead>
+        <tr>
+          <th>Slot ID</th>
+          <th>Examiner</th>
+          <th>Date</th>
+          <th>Time Window</th>
+          <th>Seats Available</th>
+          <th>Status</th>
+          <th class="text-end">Reservation</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for slot in slots %}
+        <tr>
+          <td class="fw-bold">#{{ slot.slot_id }}</td>
+          <td>
+            <div class="fw-semibold"><i class="bi bi-person-fill text-primary me-1"></i>{{ slot.examiner.name }}</div>
+            <div class="text-muted small">{{ slot.examiner.examiner_profile.department if slot.examiner.examiner_profile else '' }}</div>
+          </td>
+          <td class="fw-semibold">{{ slot.date | date_format }}</td>
+          <td>{{ slot.start_time | time_format }} &ndash; {{ slot.end_time | time_format }}</td>
+          <td>
+            <span class="fw-bold {% if slot.available_seats > 0 %}text-success{% else %}text-danger{% endif %}">
+              {{ slot.available_seats }}
+            </span> / {{ slot.maximum_student_capacity }} remaining
+          </td>
+          <td>
+            {% if slot.status == 'Available' %}
+              <span class="badge badge-status-available">Available</span>
+            {% elif slot.status == 'Full' %}
+              <span class="badge badge-status-full">Full</span>
+            {% elif slot.status == 'Cancelled' %}
+              <span class="badge badge-status-cancelled">Cancelled</span>
+            {% else %}
+              <span class="badge badge-status-completed">Completed</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if existing_booking %}
+              {% if existing_booking.slot_id == slot.slot_id %}
+                <span class="badge bg-success py-2 px-3">Your Booked Slot</span>
+              {% else %}
+                <button class="btn btn-sm btn-outline-secondary" disabled>Already Booked</button>
+              {% endif %}
+            {% elif is_booking_open %}
+              {% if slot.is_bookable %}
+                <!-- Booking Form (pure server-side POST) -->
+                <form method="POST" action="{{ url_for('student.book_slot', slot_id=slot.slot_id) }}" class="d-inline" onsubmit="return confirm('Confirm booking for {{ slot.date | date_format }} at {{ slot.start_time | time_format }}?');">
+                  <button type="submit" class="btn btn-sm btn-emp-primary fw-semibold">
+                    <i class="bi bi-ticket-perforated me-1"></i> Book Slot
+                  </button>
+                </form>
+              {% else %}
+                <button class="btn btn-sm btn-secondary" disabled>Slot Full</button>
+              {% endif %}
+            {% else %}
+              <button class="btn btn-sm btn-outline-secondary" disabled>Booking Closed</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center py-4 text-muted">
+            <i class="bi bi-calendar-x fs-2 d-block text-secondary mb-2"></i>
+            No slots have been configured by examiners yet. Please check back later.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

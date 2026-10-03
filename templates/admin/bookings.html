@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Bookings - EMP Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h2 class="fw-bold mb-1"><i class="bi bi-ticket-perforated text-primary me-2"></i>Booking Management</h2>
+    <p class="text-muted mb-0">Monitor student registrations, reschedule slots when required, and view evaluation statuses.</p>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="emp-card mb-4 p-3">
+  <form method="GET" action="{{ url_for('admin.bookings') }}" class="row g-2 align-items-center">
+    <div class="col-md-5">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control" placeholder="Search student name, email, or exam name..." value="{{ search_query }}">
+      </div>
+    </div>
+    <div class="col-md-3">
+      <select name="exam_id" class="form-select">
+        <option value="">All Examinations</option>
+        {% for exam in examinations %}
+          <option value="{{ exam.exam_id }}" {% if selected_exam_id == exam.exam_id|string %}selected{% endif %}>
+            {{ exam.course.course_code }} - {{ exam.examination_name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="status" class="form-select">
+        <option value="">All Statuses</option>
+        <option value="Booked" {% if status_filter == 'Booked' %}selected{% endif %}>Booked</option>
+        <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+        <option value="Cancelled" {% if status_filter == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+      {% if search_query or selected_exam_id or status_filter %}
+        <a href="{{ url_for('admin.bookings') }}" class="btn btn-outline-secondary">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Bookings Table -->
+<div class="emp-card">
+  <div class="emp-card-header d-flex justify-content-between align-items-center">
+    <span>Examination Bookings ({{ bookings|length }})</span>
+  </div>
+  <div class="table-responsive">
+    <table class="emp-table">
+      <thead>
+        <tr>
+          <th>Booking ID</th>
+          <th>Student</th>
+          <th>Examination</th>
+          <th>Slot Date & Time</th>
+          <th>Examiner</th>
+          <th>Booking Date</th>
+          <th>Status / Score</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in bookings %}
+        <tr>
+          <td class="fw-bold">#{{ b.booking_id }}</td>
+          <td>
+            <div class="fw-bold text-dark">{{ b.student.name }}</div>
+            <div class="text-muted small">{{ b.student.email }}</div>
+          </td>
+          <td>
+            <div class="fw-semibold">{{ b.slot.examination.examination_name }}</div>
+            <span class="badge bg-secondary small">{{ b.slot.examination.course.course_code }}</span>
+          </td>
+          <td>
+            <div>{{ b.slot.date | date_format }}</div>
+            <div class="text-muted small">{{ b.slot.start_time | time_format }} &ndash; {{ b.slot.end_time | time_format }}</div>
+          </td>
+          <td>
+            <i class="bi bi-person-circle text-primary me-1"></i>
+            {{ b.slot.examiner.name }}
+          </td>
+          <td class="small text-muted">{{ b.booking_date | datetime_format }}</td>
+          <td>
+            {% if b.status == 'Booked' %}
+              <span class="badge badge-status-available">Booked</span>
+            {% elif b.status == 'Completed' %}
+              <span class="badge badge-status-completed">Completed</span>
+              {% if b.is_evaluated %}
+                <div class="small fw-bold text-success mt-1">
+                  {{ b.total_marks_obtained }} / {{ b.maximum_possible_marks }} pts ({{ b.percentage }}%)
+                </div>
+              {% endif %}
+            {% else %}
+              <span class="badge badge-status-cancelled">Cancelled</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              {% if b.status == 'Booked' %}
+                <a href="{{ url_for('admin.reschedule_booking', booking_id=b.booking_id) }}" class="btn btn-sm btn-outline-warning" title="Reschedule Slot">
+                  <i class="bi bi-calendar-event me-1"></i> Reschedule
+                </a>
+                <form method="POST" action="{{ url_for('admin.cancel_booking', booking_id=b.booking_id) }}" class="d-inline" onsubmit="return confirm('Cancel this student booking?');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel Booking">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </form>
+              {% else %}
+                <span class="text-muted small">&mdash;</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center py-4 text-muted">
+            <i class="bi bi-ticket fs-2 d-block text-secondary mb-2"></i>
+            No bookings found matching your search.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Evaluate Student: {{ booking.student.name }} - EMP Examiner{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="emp-card">
+      <div class="emp-card-header d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0 fw-bold">
+            <i class="bi bi-award text-primary me-2"></i>
+            Candidate Evaluation Form: {{ booking.student.name }}
+          </h5>
+          <span class="small text-muted">{{ exam.course.course_code }} &bull; {{ exam.examination_name }}</span>
+        </div>
+        <a href="{{ url_for('examiner.students') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i> Back to Students
+        </a>
+      </div>
+
+      <div class="p-4">
+        <!-- Candidate & Examination Summary Banner -->
+        <div class="bg-light p-3 rounded border mb-4">
+          <div class="row">
+            <div class="col-md-3 mb-2 mb-md-0">
+              <span class="text-muted small d-block">Candidate:</span>
+              <strong class="text-dark">{{ booking.student.name }}</strong>
+              <div class="text-muted small">{{ booking.student.email }}</div>
+            </div>
+            <div class="col-md-3 mb-2 mb-md-0">
+              <span class="text-muted small d-block">Examination Type:</span>
+              <strong class="text-dark">{{ exam.examination_type }}</strong>
+              <div class="text-muted small">{{ exam.duration }} mins duration</div>
+            </div>
+            <div class="col-md-3 mb-2 mb-md-0">
+              <span class="text-muted small d-block">Slot Scheduled:</span>
+              <strong class="text-dark">{{ booking.slot.date | date_format }}</strong>
+              <div class="text-muted small">{{ booking.slot.start_time | time_format }} &ndash; {{ booking.slot.end_time | time_format }}</div>
+            </div>
+            <div class="col-md-3 text-md-end">
+              <span class="text-muted small d-block">Max Examination Marks:</span>
+              <span class="fs-5 fw-bold text-primary">{{ exam.maximum_marks }} pts</span>
+            </div>
+          </div>
+        </div>
+
+        {% if not rubrics %}
+          <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            No rubric criteria have been configured for this examination by the Administrator. Please contact admin before evaluating.
+          </div>
+        {% else %}
+          <form method="POST">
+            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-list-check me-2 text-primary"></i>Rubric-Based Scoring Criteria</h6>
+
+            {% for rubric in rubrics %}
+              {% set existing_val = existing_evals.get(rubric.rubric_id) %}
+              <div class="card mb-3 border-light-subtle shadow-sm">
+                <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                  <span class="fw-bold text-dark">
+                    <span class="badge bg-secondary me-2">Criterion {{ loop.index }}</span>
+                    {{ rubric.criterion_name }}
+                  </span>
+                  <div>
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">
+                      Max Marks: {{ rubric.maximum_marks }} pts
+                    </span>
+                    <span class="badge bg-light text-muted border ms-1">
+                      Weight: {{ rubric.weightage }}%
+                    </span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  {% if rubric.description %}
+                    <p class="small text-muted mb-3"><i class="bi bi-info-circle me-1"></i>{{ rubric.description }}</p>
+                  {% endif %}
+
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label for="marks_{{ rubric.rubric_id }}" class="form-label fw-semibold small">
+                        Awarded Marks (0 &ndash; {{ rubric.maximum_marks }}) <span class="text-danger">*</span>
+                      </label>
+                      <div class="input-group">
+                        <input type="number" step="0.5" class="form-control"
+                               id="marks_{{ rubric.rubric_id }}"
+                               name="marks_{{ rubric.rubric_id }}"
+                               min="0" max="{{ rubric.maximum_marks }}"
+                               value="{% if existing_val %}{{ existing_val.marks }}{% else %}{{ request.form.get('marks_' ~ rubric.rubric_id|string, '') }}{% endif %}"
+                               placeholder="e.g. {{ rubric.maximum_marks }}" required>
+                        <span class="input-group-text">/ {{ rubric.maximum_marks }}</span>
+                      </div>
+                    </div>
+                    <div class="col-md-8">
+                      <label for="remarks_{{ rubric.rubric_id }}" class="form-label fw-semibold small">
+                        Examiner Qualitative Remarks / Feedback
+                      </label>
+                      <input type="text" class="form-control"
+                             id="remarks_{{ rubric.rubric_id }}"
+                             name="remarks_{{ rubric.rubric_id }}"
+                             value="{% if existing_val %}{{ existing_val.remarks or '' }}{% else %}{{ request.form.get('remarks_' ~ rubric.rubric_id|string, '') }}{% endif %}"
+                             placeholder="Strengths observed, areas of improvement, technical accuracy...">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+
+            <div class="d-flex justify-content-end gap-2 border-top pt-3 mt-4">
+              <a href="{{ url_for('examiner.students') }}" class="btn btn-outline-secondary">Cancel</a>
+              <button type="submit" class="btn btn-emp-primary px-4 fw-semibold">
+                <i class="bi bi-check-circle-fill me-1"></i> Submit & Finalize Evaluation
+              </button>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

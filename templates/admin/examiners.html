@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}Examiners Directory - EMP Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h2 class="fw-bold mb-1"><i class="bi bi-people text-primary me-2"></i>Examiner Management</h2>
+    <p class="text-muted mb-0">Review pending examiner registration requests, manage faculty permissions, and inspect examiner workloads.</p>
+  </div>
+</div>
+
+<!-- Search & Status Filters -->
+<div class="emp-card mb-4 p-3">
+  <form method="GET" action="{{ url_for('admin.examiners') }}" class="row g-2 align-items-center">
+    <div class="col-md-6">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control" placeholder="Search examiner by name, email, or department..." value="{{ search_query }}">
+      </div>
+    </div>
+    <div class="col-md-3">
+      <select name="status" class="form-select">
+        <option value="">All Statuses</option>
+        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Approval</option>
+        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active / Approved</option>
+        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive / Deactivated</option>
+      </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+      {% if search_query or status_filter %}
+        <a href="{{ url_for('admin.examiners') }}" class="btn btn-outline-secondary">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Examiners Table -->
+<div class="emp-card">
+  <div class="emp-card-header d-flex justify-content-between align-items-center">
+    <span>Registered Faculty & Examiners ({{ examiners|length }})</span>
+  </div>
+  <div class="table-responsive">
+    <table class="emp-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Examiner Name</th>
+          <th>Email Address</th>
+          <th>Department</th>
+          <th>Contact Details</th>
+          <th>Status</th>
+          <th>Slots Created</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for examiner in examiners %}
+        <tr>
+          <td class="fw-bold">#{{ examiner.id }}</td>
+          <td class="fw-bold">
+            <a href="{{ url_for('admin.examiner_detail', user_id=examiner.id) }}" class="text-decoration-none">
+              {{ examiner.name }}
+            </a>
+          </td>
+          <td>{{ examiner.email }}</td>
+          <td>{{ examiner.examiner_profile.department if examiner.examiner_profile else 'N/A' }}</td>
+          <td class="small text-muted">{{ examiner.examiner_profile.contact_details if examiner.examiner_profile else 'N/A' }}</td>
+          <td>
+            {% if examiner.status == 'pending' %}
+              <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pending Review</span>
+            {% elif examiner.status == 'active' %}
+              <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Approved / Active</span>
+            {% else %}
+              <span class="badge bg-danger">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge bg-light text-dark border">{{ examiner.slots|length }} slots</span>
+          </td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1 align-items-center">
+              <a href="{{ url_for('admin.examiner_detail', user_id=examiner.id) }}" class="btn btn-sm btn-outline-secondary" title="View Workload">
+                <i class="bi bi-eye"></i>
+              </a>
+
+              {% if examiner.status == 'pending' %}
+                <!-- Approve Button Form -->
+                <form method="POST" action="{{ url_for('admin.approve_examiner', user_id=examiner.id) }}" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-success fw-semibold" title="Approve Examiner">
+                    <i class="bi bi-check2"></i> Approve
+                  </button>
+                </form>
+              {% endif %}
+
+              <!-- Toggle Active/Inactive Form -->
+              <form method="POST" action="{{ url_for('admin.toggle_examiner_status', user_id=examiner.id) }}" class="d-inline">
+                {% if examiner.status == 'active' %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Deactivate Examiner">
+                    <i class="bi bi-person-x"></i> Deactivate
+                  </button>
+                {% elif examiner.status == 'inactive' %}
+                  <button type="submit" class="btn btn-sm btn-outline-success" title="Activate Examiner">
+                    <i class="bi bi-person-check"></i> Activate
+                  </button>
+                {% endif %}
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center py-4 text-muted">
+            <i class="bi bi-people fs-2 d-block text-secondary mb-2"></i>
+            No examiners found matching the search criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

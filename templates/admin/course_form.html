@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit Course - EMP Admin{% else %}New Course - EMP Admin{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="emp-card">
+      <div class="emp-card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">
+          <i class="bi bi-journal-plus text-primary me-2"></i>
+          {% if is_edit %}Edit Course: {{ course.course_code }}{% else %}Register New Academic Course{% endif %}
+        </h5>
+        <a href="{{ url_for('admin.courses') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i> Back to Courses
+        </a>
+      </div>
+
+      <div class="p-4">
+        <form method="POST">
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label for="course_code" class="form-label fw-semibold">Course Code <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="course_code" name="course_code"
+                     value="{% if is_edit %}{{ course.course_code }}{% else %}{{ code or '' }}{% endif %}"
+                     placeholder="e.g. CS101" required autofocus>
+              <div class="form-text">Unique departmental course code (uppercase).</div>
+            </div>
+            <div class="col-md-8">
+              <label for="course_name" class="form-label fw-semibold">Course Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="course_name" name="course_name"
+                     value="{% if is_edit %}{{ course.course_name }}{% else %}{{ name or '' }}{% endif %}"
+                     placeholder="e.g. Introduction to Programming & Algorithms" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="description" class="form-label fw-semibold">Course Syllabus / Description</label>
+            <textarea class="form-control" id="description" name="description" rows="4"
+                      placeholder="Outline topics, objectives, and prerequisites...">{% if is_edit %}{{ course.description or '' }}{% else %}{{ description or '' }}{% endif %}</textarea>
+          </div>
+
+          <div class="mb-4">
+            <label for="status" class="form-label fw-semibold">Course Status</label>
+            <select class="form-select w-auto" id="status" name="status">
+              <option value="active" {% if (is_edit and course.status == 'active') or status == 'active' %}selected{% endif %}>Active (Available for exams)</option>
+              <option value="inactive" {% if (is_edit and course.status == 'inactive') or status == 'inactive' %}selected{% endif %}>Inactive (Archived)</option>
+            </select>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 border-top pt-3">
+            <a href="{{ url_for('admin.courses') }}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-emp-primary px-4 fw-semibold">
+              <i class="bi bi-check2-circle me-1"></i> {% if is_edit %}Update Course{% else %}Create Course{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

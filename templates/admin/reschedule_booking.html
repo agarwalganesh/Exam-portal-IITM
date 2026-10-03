@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Reschedule Booking #{{ booking.booking_id }} - EMP Admin{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="emp-card">
+      <div class="emp-card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">
+          <i class="bi bi-calendar2-range text-warning me-2"></i>
+          Reschedule Booking #{{ booking.booking_id }}
+        </h5>
+        <a href="{{ url_for('admin.bookings') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i> Back to Bookings
+        </a>
+      </div>
+
+      <div class="p-4">
+        <!-- Current Booking Details -->
+        <div class="bg-light p-3 rounded border mb-4">
+          <h6 class="fw-bold text-dark mb-2">Current Booking Information</h6>
+          <div class="row small">
+            <div class="col-md-6 mb-2">
+              <span class="text-muted">Student:</span>
+              <strong class="d-block">{{ booking.student.name }} ({{ booking.student.email }})</strong>
+            </div>
+            <div class="col-md-6 mb-2">
+              <span class="text-muted">Examination:</span>
+              <strong class="d-block">{{ exam.examination_name }} ({{ exam.course.course_code }})</strong>
+            </div>
+            <div class="col-md-6">
+              <span class="text-muted">Current Slot:</span>
+              <strong class="d-block">Slot #{{ current_slot.slot_id }} &bull; {{ current_slot.date | date_format }} ({{ current_slot.start_time | time_format }}-{{ current_slot.end_time | time_format }})</strong>
+            </div>
+            <div class="col-md-6">
+              <span class="text-muted">Current Examiner:</span>
+              <strong class="d-block">{{ current_slot.examiner.name }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <form method="POST">
+          <div class="mb-4">
+            <label for="new_slot_id" class="form-label fw-bold text-dark">
+              Select New Examination Slot <span class="text-danger">*</span>
+            </label>
+
+            {% if available_slots %}
+              <div class="list-group">
+                {% for slot in available_slots %}
+                  <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3">
+                    <div>
+                      <input class="form-check-input me-2" type="radio" name="new_slot_id" value="{{ slot.slot_id }}" required>
+                      <strong>Slot #{{ slot.slot_id }}: {{ slot.date | date_format }}</strong>
+                      <span class="text-muted ms-2">{{ slot.start_time | time_format }} &ndash; {{ slot.end_time | time_format }}</span>
+                      <div class="small text-muted ms-4">
+                        Examiner: <span class="text-primary">{{ slot.examiner.name }}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <span class="badge badge-status-available">{{ slot.available_seats }} seat(s) available</span>
+                    </div>
+                  </label>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                No other alternative slots with available seats are currently scheduled for this examination.
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 border-top pt-3">
+            <a href="{{ url_for('admin.bookings') }}" class="btn btn-outline-secondary">Cancel</a>
+            {% if available_slots %}
+              <button type="submit" class="btn btn-warning fw-semibold px-4">
+                <i class="bi bi-check2-circle me-1"></i> Confirm Rescheduling
+              </button>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

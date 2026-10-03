@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit Examination - EMP Admin{% else %}New Examination - EMP Admin{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="emp-card">
+      <div class="emp-card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">
+          <i class="bi bi-file-earmark-plus text-primary me-2"></i>
+          {% if is_edit %}Edit Examination Parameters: {{ exam.examination_name }}{% else %}Create New Examination Session{% endif %}
+        </h5>
+        <a href="{{ url_for('admin.examinations') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i> Back to Examinations
+        </a>
+      </div>
+
+      <div class="p-4">
+        <form method="POST">
+          <div class="row mb-3">
+            <div class="col-md-5">
+              <label for="course_id" class="form-label fw-semibold">Academic Course <span class="text-danger">*</span></label>
+              <select class="form-select" id="course_id" name="course_id" required>
+                <option value="">-- Choose Course --</option>
+                {% for course in courses %}
+                  <option value="{{ course.course_id }}" {% if (is_edit and exam.course_id == course.course_id) or (request.form.get('course_id') == course.course_id|string) %}selected{% endif %}>
+                    {{ course.course_code }} - {{ course.course_name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-7">
+              <label for="examination_name" class="form-label fw-semibold">Examination Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="examination_name" name="examination_name"
+                     value="{% if is_edit %}{{ exam.examination_name }}{% else %}{{ request.form.get('examination_name', '') }}{% endif %}"
+                     placeholder="e.g. End-Term Project Presentation & Viva" required>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label for="examination_type" class="form-label fw-semibold">Examination Type <span class="text-danger">*</span></label>
+              <select class="form-select" id="examination_type" name="examination_type" required>
+                {% for t in ['Viva', 'Practical', 'Project Demo', 'Assessment'] %}
+                  <option value="{{ t }}" {% if (is_edit and exam.examination_type == t) or (request.form.get('examination_type') == t) %}selected{% endif %}>
+                    {{ t }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="duration" class="form-label fw-semibold">Duration (Minutes) <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" id="duration" name="duration" min="5" max="300"
+                     value="{% if is_edit %}{{ exam.duration }}{% else %}{{ request.form.get('duration', 30) }}{% endif %}" required>
+            </div>
+            <div class="col-md-4">
+              <label for="maximum_marks" class="form-label fw-semibold">Total Maximum Marks <span class="text-danger">*</span></label>
+              <input type="number" step="0.5" class="form-control" id="maximum_marks" name="maximum_marks" min="1"
+                     value="{% if is_edit %}{{ exam.maximum_marks }}{% else %}{{ request.form.get('maximum_marks', 100.0) }}{% endif %}" required>
+            </div>
+          </div>
+
+          <hr class="my-4">
+          <h6 class="fw-bold text-dark mb-3"><i class="bi bi-calendar-range me-2 text-primary"></i>Configurable Examination Timeline Windows</h6>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded border">
+                <h6 class="fw-semibold text-primary mb-2"><i class="bi bi-person-workspace me-1"></i> Examiner Slot Creation Window</h6>
+                <div class="mb-2">
+                  <label for="slot_creation_start" class="form-label small fw-semibold">Window Opens At</label>
+                  <input type="datetime-local" class="form-control form-control-sm" id="slot_creation_start" name="slot_creation_start"
+                         value="{% if is_edit %}{{ exam.slot_creation_start.strftime('%Y-%m-%dT%H:%M') }}{% else %}{{ request.form.get('slot_creation_start', '') }}{% endif %}" required>
+                </div>
+                <div>
+                  <label for="slot_creation_end" class="form-label small fw-semibold">Window Closes At</label>
+                  <input type="datetime-local" class="form-control form-control-sm" id="slot_creation_end" name="slot_creation_end"
+                         value="{% if is_edit %}{{ exam.slot_creation_end.strftime('%Y-%m-%dT%H:%M') }}{% else %}{{ request.form.get('slot_creation_end', '') }}{% endif %}" required>
+                </div>
+                <div class="form-text small">Examiners can only generate or modify time slots between these dates.</div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded border">
+                <h6 class="fw-semibold text-success mb-2"><i class="bi bi-mortarboard me-1"></i> Student Slot Booking Window</h6>
+                <div class="mb-2">
+                  <label for="slot_booking_start" class="form-label small fw-semibold">Booking Opens At</label>
+                  <input type="datetime-local" class="form-control form-control-sm" id="slot_booking_start" name="slot_booking_start"
+                         value="{% if is_edit %}{{ exam.slot_booking_start.strftime('%Y-%m-%dT%H:%M') }}{% else %}{{ request.form.get('slot_booking_start', '') }}{% endif %}" required>
+                </div>
+                <div>
+                  <label for="slot_booking_end" class="form-label small fw-semibold">Booking Closes At</label>
+                  <input type="datetime-local" class="form-control form-control-sm" id="slot_booking_end" name="slot_booking_end"
+                         value="{% if is_edit %}{{ exam.slot_booking_end.strftime('%Y-%m-%dT%H:%M') }}{% else %}{{ request.form.get('slot_booking_end', '') }}{% endif %}" required>
+                </div>
+                <div class="form-text small">Students can select, reserve, or cancel available seats during this period.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <label for="status" class="form-label fw-semibold">Examination State</label>
+              <select class="form-select" id="status" name="status">
+                {% for st in ['Draft', 'Slot Creation', 'Booking Open', 'Closed', 'Completed'] %}
+                  <option value="{{ st }}" {% if (is_edit and exam.status == st) or (request.form.get('status') == st) %}selected{% endif %}>
+                    {{ st }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 border-top pt-3">
+            <a href="{{ url_for('admin.examinations') }}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-emp-primary px-4 fw-semibold">
+              <i class="bi bi-check2-circle me-1"></i> {% if is_edit %}Save Changes{% else %}Save & Define Rubrics{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}Official Scorecard - {{ exam.examination_name }} - EMP{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <a href="{{ url_for('student.results') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back to Results
+      </a>
+      <button class="btn btn-outline-primary btn-sm d-print-none" onclick="window.print()">
+        <i class="bi bi-printer me-1"></i> Print / Save Scorecard
+      </button>
+    </div>
+
+    <!-- Official Scorecard Card -->
+    <div class="emp-card p-4 p-md-5">
+      <!-- Header -->
+      <div class="text-center border-bottom pb-4 mb-4">
+        <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-circle mb-2" style="width: 55px; height: 55px;">
+          <i class="bi bi-mortarboard-fill fs-2"></i>
+        </div>
+        <h4 class="fw-bold mb-0">INDIAN INSTITUTE OF TECHNOLOGY MADRAS</h4>
+        <div class="text-muted small">Examination Management Portal &bull; Official Evaluation Scorecard</div>
+      </div>
+
+      <!-- Candidate & Exam Info Grid -->
+      <div class="bg-light p-3 rounded border mb-4">
+        <div class="row g-3">
+          <div class="col-sm-6 col-md-3">
+            <span class="text-muted small d-block">Student Name:</span>
+            <strong class="text-dark">{{ booking.student.name }}</strong>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <span class="text-muted small d-block">Student Email:</span>
+            <strong class="text-dark">{{ booking.student.email }}</strong>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <span class="text-muted small d-block">Course:</span>
+            <strong class="text-dark">{{ exam.course.course_code }}</strong>
+            <div class="text-muted small">{{ exam.course.course_name }}</div>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <span class="text-muted small d-block">Examination:</span>
+            <strong class="text-dark">{{ exam.examination_name }}</strong>
+            <span class="badge bg-secondary small">{{ exam.examination_type }}</span>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <span class="text-muted small d-block">Evaluation Date:</span>
+            <strong class="text-dark">{{ slot.date | date_format }}</strong>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <span class="text-muted small d-block">Time Slot:</span>
+            <strong class="text-dark">{{ slot.start_time | time_format }} &ndash; {{ slot.end_time | time_format }}</strong>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <span class="text-muted small d-block">Evaluating Examiner:</span>
+            <strong class="text-primary">{{ slot.examiner.name }}</strong>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <span class="text-muted small d-block">Department:</span>
+            <strong class="text-dark">{{ slot.examiner.examiner_profile.department if slot.examiner.examiner_profile else 'Academic Faculty' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Criterion Breakdown Table -->
+      <h6 class="fw-bold text-dark mb-3"><i class="bi bi-list-check me-2 text-primary"></i>Criterion-Wise Performance Breakdown</h6>
+      <div class="table-responsive mb-4">
+        <table class="emp-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Rubric Criterion</th>
+              <th>Weightage</th>
+              <th>Max Marks</th>
+              <th>Marks Awarded</th>
+              <th>Examiner Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ev in evaluations %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td class="fw-semibold text-dark">{{ ev.rubric.criterion_name }}</td>
+              <td>{{ ev.rubric.weightage }}%</td>
+              <td>{{ ev.rubric.maximum_marks }} pts</td>
+              <td>
+                <span class="fw-bold text-success">{{ ev.marks }}</span> / {{ ev.rubric.maximum_marks }}
+              </td>
+              <td class="small text-muted">{{ ev.remarks or 'Satisfactory performance.' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-3">No criterion details available.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-light">
+              <th colspan="3" class="text-end">Total Score:</th>
+              <th>{{ booking.maximum_possible_marks }} pts</th>
+              <th><span class="fs-5 text-success">{{ booking.total_marks_obtained }}</span> / {{ booking.maximum_possible_marks }}</th>
+              <th></th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Score Summary Banner -->
+      <div class="row align-items-center p-3 rounded bg-success bg-opacity-10 border border-success-subtle">
+        <div class="col-md-8">
+          <h5 class="fw-bold text-success mb-1">
+            <i class="bi bi-award-fill me-2"></i>
+            Final Result: {{ booking.percentage }}%
+          </h5>
+          <p class="small text-muted mb-0">
+            Status: <span class="badge bg-success">Passed / Verified</span> &bull; Recorded on {{ booking.booking_date | date_format }}
+          </p>
+        </div>
+        <div class="col-md-4 text-md-end mt-2 mt-md-0">
+          <div class="small text-muted">Authorized by:</div>
+          <strong class="text-dark">{{ slot.examiner.name }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Registration - EMP{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card" style="max-width: 480px;">
+    <div class="text-center mb-4">
+      <div class="d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success rounded-circle mb-3" style="width: 60px; height: 60px;">
+        <i class="bi bi-mortarboard fs-2 text-success"></i>
+      </div>
+      <h3 class="fw-bold mb-1">Student Registration</h3>
+      <p class="text-muted small">Create your student account to register for examination slots</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.register_student') }}">
+      <div class="mb-3">
+        <label for="name" class="form-label fw-semibold">Full Name</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input type="text" class="form-control" id="name" name="name" value="{{ name or '' }}" placeholder="e.g. Rahul Verma" required>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="email" class="form-label fw-semibold">Student Email Address</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+          <input type="email" class="form-control" id="email" name="email" value="{{ email or '' }}" placeholder="student@student.iitm.ac.in" required>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label for="password" class="form-label fw-semibold">Password</label>
+          <input type="password" class="form-control" id="password" name="password" placeholder="At least 6 chars" required>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label for="confirm_password" class="form-label fw-semibold">Confirm Password</label>
+          <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Repeat password" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-success w-100 py-2 fw-semibold">
+        <i class="bi bi-person-check me-1"></i> Register Student Account
+      </button>
+    </form>
+
+    <div class="mt-4 pt-3 border-top text-center">
+      <span class="small text-muted">Already registered?</span>
+      <a href="{{ url_for('auth.login') }}" class="small fw-semibold ms-1">Sign In</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

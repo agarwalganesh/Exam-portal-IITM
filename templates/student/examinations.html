@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Examinations Catalog - EMP Student{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h2 class="fw-bold mb-1"><i class="bi bi-search text-primary me-2"></i>Examination Directory</h2>
+    <p class="text-muted mb-0">Discover ongoing academic evaluations, viva voce sessions, and project demonstrations.</p>
+  </div>
+</div>
+
+<!-- Search & Filters -->
+<div class="emp-card mb-4 p-3">
+  <form method="GET" action="{{ url_for('student.examinations') }}" class="row g-2 align-items-center">
+    <div class="col-md-7">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control" placeholder="Search by examination title, course code, or name..." value="{{ search_query }}">
+      </div>
+    </div>
+    <div class="col-md-3">
+      <select name="type" class="form-select">
+        <option value="">All Examination Types</option>
+        <option value="Viva" {% if type_filter == 'Viva' %}selected{% endif %}>Viva</option>
+        <option value="Practical" {% if type_filter == 'Practical' %}selected{% endif %}>Practical</option>
+        <option value="Project Demo" {% if type_filter == 'Project Demo' %}selected{% endif %}>Project Demo</option>
+        <option value="Assessment" {% if type_filter == 'Assessment' %}selected{% endif %}>Assessment</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-outline-primary w-100">Search</button>
+      {% if search_query or type_filter %}
+        <a href="{{ url_for('student.examinations') }}" class="btn btn-outline-secondary">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Examinations Grid -->
+<div class="row g-4">
+  {% for exam in examinations %}
+    {% set is_booking_period = exam.is_slot_booking_period(now) %}
+    {% set is_already_booked = exam.exam_id in my_booked_exam_ids %}
+    <div class="col-md-6 col-lg-4">
+      <div class="emp-card h-100 d-flex flex-column">
+        <div class="emp-card-header d-flex justify-content-between align-items-center">
+          <span class="badge bg-primary">{{ exam.course.course_code }}</span>
+          <span class="badge bg-light text-dark border">{{ exam.examination_type }}</span>
+        </div>
+        <div class="p-4 flex-grow-1">
+          <h5 class="fw-bold text-dark mb-1">{{ exam.examination_name }}</h5>
+          <p class="text-muted small mb-3">{{ exam.course.course_name }}</p>
+
+          <div class="bg-light p-3 rounded small mb-3 border">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Maximum Marks:</span>
+              <strong>{{ exam.maximum_marks }} pts</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Duration:</span>
+              <strong>{{ exam.duration }} mins</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Available Slots:</span>
+              <strong class="text-primary">{{ exam.slots|length }} slots</strong>
+            </div>
+          </div>
+
+          <div>
+            <span class="text-muted small d-block mb-1">Booking Window:</span>
+            <div class="small fw-semibold {% if is_booking_period %}text-success{% else %}text-muted{% endif %}">
+              {{ exam.slot_booking_start | datetime_format }} &rarr; {{ exam.slot_booking_end | datetime_format }}
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-light border-top d-flex justify-content-between align-items-center">
+          {% if is_already_booked %}
+            <span class="badge badge-status-available"><i class="bi bi-check-circle me-1"></i>Already Booked</span>
+            <a href="{{ url_for('student.my_bookings') }}" class="btn btn-sm btn-outline-success">View Booking</a>
+          {% elif is_booking_period %}
+            <span class="badge badge-status-open"><i class="bi bi-clock-history me-1"></i>Booking Open</span>
+            <a href="{{ url_for('student.examination_detail', exam_id=exam.exam_id) }}" class="btn btn-sm btn-emp-primary">
+              Select Slot <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+          {% elif now < exam.slot_booking_start %}
+            <span class="badge bg-secondary">Opens {{ exam.slot_booking_start | date_format }}</span>
+            <a href="{{ url_for('student.examination_detail', exam_id=exam.exam_id) }}" class="btn btn-sm btn-outline-secondary">
+              View Details
+            </a>
+          {% else %}
+            <span class="badge bg-secondary">Booking Closed</span>
+            <a href="{{ url_for('student.examination_detail', exam_id=exam.exam_id) }}" class="btn btn-sm btn-outline-secondary">
+              View Details
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="col-12">
+      <div class="emp-card text-center py-5">
+        <i class="bi bi-search fs-1 text-muted mb-2"></i>
+        <h5 class="text-muted">No examinations matched your search criteria.</h5>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

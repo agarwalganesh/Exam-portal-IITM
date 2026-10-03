@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}All Examination Slots - EMP Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h2 class="fw-bold mb-1"><i class="bi bi-calendar3 text-primary me-2"></i>Examination Slot Management</h2>
+    <p class="text-muted mb-0">Oversee all examination time slots, capacity availability, examiner assignments, and cancellations.</p>
+  </div>
+</div>
+
+<!-- Filters Card -->
+<div class="emp-card mb-4 p-3">
+  <form method="GET" action="{{ url_for('admin.slots') }}" class="row g-2 align-items-center">
+    <div class="col-md-6">
+      <select name="exam_id" class="form-select">
+        <option value="">All Examinations</option>
+        {% for exam in examinations %}
+          <option value="{{ exam.exam_id }}" {% if selected_exam_id == exam.exam_id|string %}selected{% endif %}>
+            {{ exam.course.course_code }} - {{ exam.examination_name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="status" class="form-select">
+        <option value="">All Statuses</option>
+        <option value="Available" {% if status_filter == 'Available' %}selected{% endif %}>Available</option>
+        <option value="Full" {% if status_filter == 'Full' %}selected{% endif %}>Full</option>
+        <option value="Cancelled" {% if status_filter == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+        <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+      </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-outline-primary w-100">Filter Slots</button>
+      {% if selected_exam_id or status_filter %}
+        <a href="{{ url_for('admin.slots') }}" class="btn btn-outline-secondary">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Slots Table -->
+<div class="emp-card">
+  <div class="emp-card-header d-flex justify-content-between align-items-center">
+    <span>Scheduled Examination Slots ({{ slots|length }})</span>
+  </div>
+  <div class="table-responsive">
+    <table class="emp-table">
+      <thead>
+        <tr>
+          <th>Slot ID</th>
+          <th>Examination</th>
+          <th>Date & Time</th>
+          <th>Capacity & Seats</th>
+          <th>Current Examiner</th>
+          <th>Status</th>
+          <th>Reassign Examiner</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for slot in slots %}
+        <tr>
+          <td class="fw-bold">#{{ slot.slot_id }}</td>
+          <td>
+            <div class="fw-bold text-dark">{{ slot.examination.examination_name }}</div>
+            <span class="badge bg-secondary small">{{ slot.examination.course.course_code }}</span>
+          </td>
+          <td>
+            <div class="fw-semibold">{{ slot.date | date_format }}</div>
+            <div class="text-muted small">{{ slot.start_time | time_format }} &ndash; {{ slot.end_time | time_format }}</div>
+          </td>
+          <td>
+            <span class="fw-bold fs-6">{{ slot.available_seats }}</span> / {{ slot.maximum_student_capacity }} left
+            <div class="text-muted small">({{ slot.bookings|length }} booked)</div>
+          </td>
+          <td>
+            <div class="fw-semibold text-primary"><i class="bi bi-person-fill me-1"></i>{{ slot.examiner.name }}</div>
+            <div class="small text-muted">{{ slot.examiner.examiner_profile.department if slot.examiner.examiner_profile else '' }}</div>
+          </td>
+          <td>
+            {% if slot.status == 'Available' %}
+              <span class="badge badge-status-available">Available</span>
+            {% elif slot.status == 'Full' %}
+              <span class="badge badge-status-full">Full</span>
+            {% elif slot.status == 'Cancelled' %}
+              <span class="badge badge-status-cancelled">Cancelled</span>
+            {% else %}
+              <span class="badge badge-status-completed">Completed</span>
+            {% endif %}
+          </td>
+          <td>
+            <!-- Reassignment Form -->
+            <form method="POST" action="{{ url_for('admin.reassign_slot', slot_id=slot.slot_id) }}" class="d-flex gap-1 align-items-center">
+              <select name="examiner_id" class="form-select form-select-sm" style="width: 160px;" required>
+                {% for ex in examiners %}
+                  <option value="{{ ex.id }}" {% if ex.id == slot.examiner_id %}selected{% endif %}>
+                    {{ ex.name }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-sm btn-outline-primary" title="Confirm Reassignment">Reassign</button>
+            </form>
+          </td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              {% if slot.status != 'Cancelled' %}
+                <form method="POST" action="{{ url_for('admin.cancel_slot', slot_id=slot.slot_id) }}" class="d-inline" onsubmit="return confirm('Cancel this slot? Any booked students will be impacted.');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel Slot">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center py-4 text-muted">
+            <i class="bi bi-calendar-x fs-2 d-block text-secondary mb-2"></i>
+            No slots found matching the criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

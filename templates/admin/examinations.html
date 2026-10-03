@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Examinations - EMP Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h2 class="fw-bold mb-1"><i class="bi bi-file-earmark-text text-primary me-2"></i>Examination Management</h2>
+    <p class="text-muted mb-0">Configure examination schedules, timeline windows, evaluation rubrics, and slot parameters.</p>
+  </div>
+  <div>
+    <a href="{{ url_for('admin.new_examination') }}" class="btn btn-emp-primary">
+      <i class="bi bi-plus-lg me-1"></i> Create Examination
+    </a>
+  </div>
+</div>
+
+<!-- Filters Card -->
+<div class="emp-card mb-4 p-3">
+  <form method="GET" action="{{ url_for('admin.examinations') }}" class="row g-2 align-items-center">
+    <div class="col-md-5">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control" placeholder="Search by exam name or course code..." value="{{ search_query }}">
+      </div>
+    </div>
+    <div class="col-md-3">
+      <select name="type" class="form-select">
+        <option value="">All Types</option>
+        <option value="Viva" {% if type_filter == 'Viva' %}selected{% endif %}>Viva</option>
+        <option value="Practical" {% if type_filter == 'Practical' %}selected{% endif %}>Practical</option>
+        <option value="Project Demo" {% if type_filter == 'Project Demo' %}selected{% endif %}>Project Demo</option>
+        <option value="Assessment" {% if type_filter == 'Assessment' %}selected{% endif %}>Assessment</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="status" class="form-select">
+        <option value="">All Statuses</option>
+        <option value="Draft" {% if status_filter == 'Draft' %}selected{% endif %}>Draft</option>
+        <option value="Slot Creation" {% if status_filter == 'Slot Creation' %}selected{% endif %}>Slot Creation</option>
+        <option value="Booking Open" {% if status_filter == 'Booking Open' %}selected{% endif %}>Booking Open</option>
+        <option value="Closed" {% if status_filter == 'Closed' %}selected{% endif %}>Closed</option>
+        <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+      {% if search_query or type_filter or status_filter %}
+        <a href="{{ url_for('admin.examinations') }}" class="btn btn-outline-secondary">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Examinations Table -->
+<div class="emp-card">
+  <div class="emp-card-header d-flex justify-content-between align-items-center">
+    <span>Examinations Directory ({{ examinations|length }})</span>
+  </div>
+  <div class="table-responsive">
+    <table class="emp-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Course</th>
+          <th>Examination Name</th>
+          <th>Type</th>
+          <th>Duration / Max Marks</th>
+          <th>Slot Creation Window</th>
+          <th>Student Booking Window</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exam in examinations %}
+        <tr>
+          <td class="fw-bold">#{{ exam.exam_id }}</td>
+          <td><span class="badge bg-secondary">{{ exam.course.course_code }}</span></td>
+          <td>
+            <a href="{{ url_for('admin.examination_detail', exam_id=exam.exam_id) }}" class="fw-bold text-decoration-none">
+              {{ exam.examination_name }}
+            </a>
+          </td>
+          <td><span class="badge bg-light text-dark border">{{ exam.examination_type }}</span></td>
+          <td>
+            <span class="small d-block"><i class="bi bi-clock me-1 text-muted"></i>{{ exam.duration }} mins</span>
+            <span class="small d-block text-muted">{{ exam.maximum_marks }} pts</span>
+          </td>
+          <td class="small">
+            <div><strong>From:</strong> {{ exam.slot_creation_start | datetime_format('%b %d, %Y %H:%M') }}</div>
+            <div><strong>To:</strong> {{ exam.slot_creation_end | datetime_format('%b %d, %Y %H:%M') }}</div>
+          </td>
+          <td class="small">
+            <div><strong>From:</strong> {{ exam.slot_booking_start | datetime_format('%b %d, %Y %H:%M') }}</div>
+            <div><strong>To:</strong> {{ exam.slot_booking_end | datetime_format('%b %d, %Y %H:%M') }}</div>
+          </td>
+          <td>
+            {% if exam.status == 'Booking Open' %}
+              <span class="badge badge-status-open">Booking Open</span>
+            {% elif exam.status == 'Slot Creation' %}
+              <span class="badge badge-status-creation">Slot Creation</span>
+            {% elif exam.status == 'Completed' %}
+              <span class="badge badge-status-completed">Completed</span>
+            {% elif exam.status == 'Draft' %}
+              <span class="badge badge-status-draft">Draft</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ exam.status }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              <a href="{{ url_for('admin.examination_detail', exam_id=exam.exam_id) }}" class="btn btn-sm btn-outline-primary" title="View Rubrics & Slots">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('admin.edit_examination', exam_id=exam.exam_id) }}" class="btn btn-sm btn-outline-secondary" title="Edit Parameters">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST" action="{{ url_for('admin.delete_examination', exam_id=exam.exam_id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this examination?');">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Examination">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" class="text-center py-4 text-muted">
+            <i class="bi bi-inbox fs-2 d-block text-secondary mb-2"></i>
+            No examinations found matching your filter criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

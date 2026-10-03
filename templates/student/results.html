@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}My Results - EMP Student{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h2 class="fw-bold mb-1"><i class="bi bi-award text-success me-2"></i>Academic Examination Results</h2>
+    <p class="text-muted mb-0">View your verified marks, performance percentages, and qualitative feedback remarks.</p>
+  </div>
+</div>
+
+<div class="emp-card">
+  <div class="emp-card-header d-flex justify-content-between align-items-center">
+    <span>Completed & Evaluated Examinations ({{ bookings|length }})</span>
+  </div>
+  <div class="table-responsive">
+    <table class="emp-table">
+      <thead>
+        <tr>
+          <th>Course</th>
+          <th>Examination Name</th>
+          <th>Examination Date</th>
+          <th>Examiner</th>
+          <th>Marks Obtained</th>
+          <th>Percentage</th>
+          <th class="text-end">Detailed Scorecard</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in bookings %}
+        <tr>
+          <td><span class="badge bg-secondary">{{ b.slot.examination.course.course_code }}</span></td>
+          <td class="fw-bold text-dark">{{ b.slot.examination.examination_name }}</td>
+          <td>{{ b.slot.date | date_format }}</td>
+          <td>
+            <i class="bi bi-person-fill text-primary me-1"></i>
+            {{ b.slot.examiner.name }}
+          </td>
+          <td>
+            <span class="fs-6 fw-bold text-success">{{ b.total_marks_obtained }}</span> / {{ b.maximum_possible_marks }} pts
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle fs-6">
+                {{ b.percentage }}%
+              </span>
+            </div>
+          </td>
+          <td class="text-end">
+            <a href="{{ url_for('student.result_detail', booking_id=b.booking_id) }}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-file-earmark-check me-1"></i> View Scorecard
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center py-5 text-muted">
+            <i class="bi bi-award fs-1 d-block text-secondary mb-2"></i>
+            No completed evaluation results published yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

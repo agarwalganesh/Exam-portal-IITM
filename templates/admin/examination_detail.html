@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ exam.examination_name }} - Details - EMP Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge bg-primary">{{ exam.course.course_code }}</span>
+      <h2 class="fw-bold mb-0">{{ exam.examination_name }}</h2>
+      <span class="badge bg-secondary">{{ exam.examination_type }}</span>
+    </div>
+    <p class="text-muted mb-0">{{ exam.course.course_name }} &bull; Max Marks: <strong>{{ exam.maximum_marks }}</strong> &bull; Duration: <strong>{{ exam.duration }} mins</strong></p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('admin.edit_examination', exam_id=exam.exam_id) }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-pencil me-1"></i> Edit Parameters
+    </a>
+    <a href="{{ url_for('admin.examinations') }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Back to List
+    </a>
+  </div>
+</div>
+
+<!-- Timeline & Status Info Card -->
+<div class="row g-3 mb-4">
+  <div class="col-md-8">
+    <div class="emp-card p-3 h-100">
+      <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-calendar-event me-2 text-primary"></i>Configured Timeline Windows</h6>
+      <div class="row">
+        <div class="col-sm-6 mb-2">
+          <div class="text-muted small">Examiner Slot Creation Window:</div>
+          <div class="fw-semibold text-primary">
+            {{ exam.slot_creation_start | datetime_format }} <br>&rarr; {{ exam.slot_creation_end | datetime_format }}
+          </div>
+        </div>
+        <div class="col-sm-6 mb-2">
+          <div class="text-muted small">Student Slot Booking Window:</div>
+          <div class="fw-semibold text-success">
+            {{ exam.slot_booking_start | datetime_format }} <br>&rarr; {{ exam.slot_booking_end | datetime_format }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="emp-card p-3 h-100">
+      <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-toggles me-2 text-primary"></i>Current Status & Override</h6>
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <span class="text-muted small">Active Status:</span>
+        <span class="badge fs-6 {% if exam.status == 'Booking Open' %}badge-status-open{% elif exam.status == 'Slot Creation' %}badge-status-creation{% elif exam.status == 'Completed' %}badge-status-completed{% else %}badge-status-draft{% endif %}">
+          {{ exam.status }}
+        </span>
+      </div>
+
+      <form method="POST" action="{{ url_for('admin.update_examination_status', exam_id=exam.exam_id) }}" class="d-flex gap-2">
+        <select name="status" class="form-select form-select-sm">
+          <option value="Draft" {% if exam.status == 'Draft' %}selected{% endif %}>Draft</option>
+          <option value="Slot Creation" {% if exam.status == 'Slot Creation' %}selected{% endif %}>Slot Creation</option>
+          <option value="Booking Open" {% if exam.status == 'Booking Open' %}selected{% endif %}>Booking Open</option>
+          <option value="Closed" {% if exam.status == 'Closed' %}selected{% endif %}>Closed</option>
+          <option value="Completed" {% if exam.status == 'Completed' %}selected{% endif %}>Completed</option>
+        </select>
+        <button type="submit" class="btn btn-sm btn-outline-dark">Update</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Evaluation Rubrics Section -->
+<div class="emp-card mb-4">
+  <div class="emp-card-header d-flex justify-content-between align-items-center">
+    <div>
+      <h5 class="mb-0 fw-bold"><i class="bi bi-list-check text-primary me-2"></i>Evaluation Rubrics ({{ rubrics|length }})</h5>
+      <span class="small text-muted">Total rubric marks: {{ exam.total_rubric_marks() }} / {{ exam.maximum_marks }} max</span>
+    </div>
+    <a href="{{ url_for('admin.new_rubric', exam_id=exam.exam_id) }}" class="btn btn-sm btn-emp-primary">
+      <i class="bi bi-plus-circle me-1"></i> Add Rubric Criterion
+    </a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="emp-table">
+      <thead>
+        <tr>
+          <th>Criterion Name</th>
+          <th>Max Marks</th>
+          <th>Weightage (%)</th>
+          <th>Description</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rubrics %}
+        <tr>
+          <td class="fw-bold">{{ r.criterion_name }}</td>
+          <td><span class="badge bg-light text-dark border fs-6">{{ r.maximum_marks }} pts</span></td>
+          <td>{{ r.weightage }}%</td>
+          <td class="text-muted small" style="max-width: 350px;">{{ r.description or 'No criteria notes' }}</td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              <a href="{{ url_for('admin.edit_rubric', rubric_id=r.rubric_id) }}" class="btn btn-sm btn-outline-secondary" title="Edit Criterion">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST" action="{{ url_for('admin.delete_rubric', rubric_id=r.rubric_id) }}" class="d-inline" onsubmit="return confirm('Delete this rubric criterion?');">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Criterion">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center py-4 text-muted">
+            <i class="bi bi-card-checklist fs-2 d-block text-secondary mb-2"></i>
+            No evaluation rubrics defined yet. Click "Add Rubric Criterion" to configure grading standards.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Examination Slots Section -->
+<div class="emp-card">
+  <div class="emp-card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-calendar3 text-primary me-2"></i>Scheduled Examination Slots ({{ slots|length }})</h5>
+  </div>
+  <div class="table-responsive">
+    <table class="emp-table">
+      <thead>
+        <tr>
+          <th>Slot ID</th>
+          <th>Examiner</th>
+          <th>Date</th>
+          <th>Time Window</th>
+          <th>Capacity / Available</th>
+          <th>Status</th>
+          <th>Booked Students</th>
+          <th class="text-end">Reassign Examiner</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for slot in slots %}
+        <tr>
+          <td class="fw-bold">#{{ slot.slot_id }}</td>
+          <td>
+            <i class="bi bi-person-circle text-primary me-1"></i>
+            {{ slot.examiner.name }}
+          </td>
+          <td class="fw-semibold">{{ slot.date | date_format }}</td>
+          <td>{{ slot.start_time | time_format }} &ndash; {{ slot.end_time | time_format }}</td>
+          <td>
+            <span class="fw-bold">{{ slot.available_seats }}</span> / {{ slot.maximum_student_capacity }} left
+          </td>
+          <td>
+            {% if slot.status == 'Available' %}
+              <span class="badge badge-status-available">Available</span>
+            {% elif slot.status == 'Full' %}
+              <span class="badge badge-status-full">Full</span>
+            {% elif slot.status == 'Cancelled' %}
+              <span class="badge badge-status-cancelled">Cancelled</span>
+            {% else %}
+              <span class="badge badge-status-completed">Completed</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge bg-light text-dark border">{{ slot.bookings|length }} student(s)</span>
+          </td>
+          <td class="text-end">
+            <!-- Admin Reassignment Form -->
+            <form method="POST" action="{{ url_for('admin.reassign_slot', slot_id=slot.slot_id) }}" class="d-inline-flex gap-1 align-items-center">
+              <select name="examiner_id" class="form-select form-select-sm" style="width: 170px;" required>
+                {% for ex in examiners %}
+                  <option value="{{ ex.id }}" {% if ex.id == slot.examiner_id %}selected{% endif %}>
+                    {{ ex.name }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-sm btn-outline-primary" title="Confirm Reassignment">Assign</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center py-4 text-muted">
+            <i class="bi bi-calendar-x fs-2 d-block text-secondary mb-2"></i>
+            No slots scheduled yet by examiners.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

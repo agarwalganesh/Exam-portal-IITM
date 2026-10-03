@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Assigned & Available Examinations - EMP Examiner{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h2 class="fw-bold mb-1"><i class="bi bi-journal-check text-primary me-2"></i>Assigned Examinations</h2>
+    <p class="text-muted mb-0">Browse academic examinations open for slot scheduling and review evaluation rubrics.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  {% for exam in examinations %}
+    <div class="col-md-6 col-lg-4">
+      <div class="emp-card h-100 d-flex flex-column">
+        <div class="emp-card-header d-flex justify-content-between align-items-center">
+          <span class="badge bg-primary">{{ exam.course.course_code }}</span>
+          <span class="badge bg-secondary">{{ exam.examination_type }}</span>
+        </div>
+        <div class="p-4 flex-grow-1">
+          <h5 class="fw-bold text-dark mb-1">{{ exam.examination_name }}</h5>
+          <p class="text-muted small mb-3">{{ exam.course.course_name }}</p>
+
+          <div class="bg-light p-3 rounded small mb-3 border">
+            <div class="mb-2"><strong>Max Marks:</strong> {{ exam.maximum_marks }} pts</div>
+            <div class="mb-2"><strong>Duration:</strong> {{ exam.duration }} minutes</div>
+            <div class="mb-2">
+              <strong>Slot Creation Window:</strong>
+              <div class="text-primary fw-semibold">{{ exam.slot_creation_start | datetime_format }} &rarr; {{ exam.slot_creation_end | datetime_format }}</div>
+            </div>
+            <div>
+              <strong>Booking Window:</strong>
+              <div class="text-muted">{{ exam.slot_booking_start | datetime_format }} &rarr; {{ exam.slot_booking_end | datetime_format }}</div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <h6 class="fw-bold small text-dark mb-1"><i class="bi bi-list-check me-1"></i>Rubric Criteria ({{ exam.rubrics|length }}):</h6>
+            <ul class="list-unstyled small text-muted mb-0">
+              {% for r in exam.rubrics %}
+                <li>&bull; {{ r.criterion_name }} ({{ r.maximum_marks }} pts)</li>
+              {% else %}
+                <li class="fst-italic">No rubrics defined yet.</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <div class="p-3 bg-light border-top d-flex justify-content-between align-items-center">
+          {% if exam.is_slot_creation_period(now) %}
+            <span class="badge badge-status-open"><i class="bi bi-clock-history me-1"></i>Slot Creation Open</span>
+            <a href="{{ url_for('examiner.new_slot', exam_id=exam.exam_id) }}" class="btn btn-sm btn-emp-primary">
+              <i class="bi bi-plus-circle me-1"></i> Add Slot
+            </a>
+          {% elif now < exam.slot_creation_start %}
+            <span class="badge bg-secondary">Creation Opens Later</span>
+            <button class="btn btn-sm btn-outline-secondary" disabled>Locked</button>
+          {% else %}
+            <span class="badge bg-secondary">Creation Window Closed</span>
+            <button class="btn btn-sm btn-outline-secondary" disabled>Closed</button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="col-12">
+      <div class="emp-card text-center py-5">
+        <i class="bi bi-journal-x fs-1 text-muted mb-2"></i>
+        <h5 class="text-muted">No examinations currently available.</h5>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

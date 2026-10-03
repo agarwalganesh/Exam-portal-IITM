@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Examiner Profile - {{ examiner.name }} - EMP Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+  <div>
+    <h2 class="fw-bold mb-1"><i class="bi bi-person-badge text-primary me-2"></i>Examiner Dossier</h2>
+    <p class="text-muted mb-0">Profile details and scheduled examination slots for {{ examiner.name }}.</p>
+  </div>
+  <div>
+    <a href="{{ url_for('admin.examiners') }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Back to Examiners
+    </a>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="emp-card p-4 text-center">
+      <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-circle mb-3" style="width: 75px; height: 75px;">
+        <i class="bi bi-person-workspace fs-1 text-primary"></i>
+      </div>
+      <h4 class="fw-bold mb-1">{{ examiner.name }}</h4>
+      <p class="text-muted mb-2">{{ examiner.email }}</p>
+
+      <div class="mb-3">
+        {% if examiner.status == 'active' %}
+          <span class="badge bg-success fs-6"><i class="bi bi-check-circle me-1"></i>Active / Approved</span>
+        {% elif examiner.status == 'pending' %}
+          <span class="badge bg-warning text-dark fs-6"><i class="bi bi-clock me-1"></i>Pending Review</span>
+        {% else %}
+          <span class="badge bg-danger fs-6">Inactive</span>
+        {% endif %}
+      </div>
+
+      <div class="text-start bg-light p-3 rounded small mb-3 border">
+        <div class="mb-2"><strong>Department:</strong> {{ examiner.examiner_profile.department if examiner.examiner_profile else 'N/A' }}</div>
+        <div class="mb-2"><strong>Contact:</strong> {{ examiner.examiner_profile.contact_details if examiner.examiner_profile else 'N/A' }}</div>
+        <div><strong>Joined:</strong> {{ examiner.created_at | date_format }}</div>
+      </div>
+
+      <div class="d-grid gap-2">
+        {% if examiner.status == 'pending' %}
+          <form method="POST" action="{{ url_for('admin.approve_examiner', user_id=examiner.id) }}">
+            <button type="submit" class="btn btn-success w-100 fw-semibold">
+              <i class="bi bi-check2-circle me-1"></i> Approve Examiner
+            </button>
+          </form>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('admin.toggle_examiner_status', user_id=examiner.id) }}">
+          {% if examiner.status == 'active' %}
+            <button type="submit" class="btn btn-outline-danger w-100 btn-sm">Deactivate Account</button>
+          {% elif examiner.status == 'inactive' %}
+            <button type="submit" class="btn btn-outline-success w-100 btn-sm">Activate Account</button>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="emp-card h-100">
+      <div class="emp-card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-calendar-week me-2 text-primary"></i>Slots Scheduled by Examiner ({{ slots|length }})</h5>
+      </div>
+      <div class="table-responsive">
+        <table class="emp-table">
+          <thead>
+            <tr>
+              <th>Slot ID</th>
+              <th>Examination</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Capacity</th>
+              <th>Status</th>
+              <th>Students</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in slots %}
+            <tr>
+              <td class="fw-bold">#{{ s.slot_id }}</td>
+              <td>{{ s.examination.examination_name }}</td>
+              <td>{{ s.date | date_format }}</td>
+              <td>{{ s.start_time | time_format }} &ndash; {{ s.end_time | time_format }}</td>
+              <td>{{ s.available_seats }} / {{ s.maximum_student_capacity }}</td>
+              <td>
+                {% if s.status == 'Available' %}
+                  <span class="badge badge-status-available">Available</span>
+                {% elif s.status == 'Full' %}
+                  <span class="badge badge-status-full">Full</span>
+                {% elif s.status == 'Cancelled' %}
+                  <span class="badge badge-status-cancelled">Cancelled</span>
+                {% else %}
+                  <span class="badge badge-status-completed">Completed</span>
+                {% endif %}
+              </td>
+              <td><span class="badge bg-light text-dark border">{{ s.bookings|length }}</span></td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted">No examination slots created by this examiner yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

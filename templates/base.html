@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Examination Management Portal (EMP){% endblock %}</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark emp-navbar sticky-top">
+    <div class="container-fluid px-lg-4">
+      <a class="navbar-brand emp-brand" href="{{ url_for('index') }}">
+        <i class="bi bi-mortarboard-fill text-warning fs-4"></i>
+        <span>IITM EMP</span>
+        <span class="emp-brand-badge">PORTAL</span>
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#empNavbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="empNavbarNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          {% if current_user.is_authenticated %}
+            {% if current_user.role == 'admin' %}
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}" href="{{ url_for('admin.dashboard') }}">
+                  <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if 'courses' in request.endpoint %}active{% endif %}" href="{{ url_for('admin.courses') }}">
+                  <i class="bi bi-journal-bookmark me-1"></i> Courses
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if 'examination' in request.endpoint %}active{% endif %}" href="{{ url_for('admin.examinations') }}">
+                  <i class="bi bi-file-earmark-text me-1"></i> Examinations
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if 'examiners' in request.endpoint %}active{% endif %}" href="{{ url_for('admin.examiners') }}">
+                  <i class="bi bi-people me-1"></i> Examiners
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if 'slots' in request.endpoint %}active{% endif %}" href="{{ url_for('admin.slots') }}">
+                  <i class="bi bi-calendar3 me-1"></i> Slots
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if 'bookings' in request.endpoint %}active{% endif %}" href="{{ url_for('admin.bookings') }}">
+                  <i class="bi bi-ticket-perforated me-1"></i> Bookings
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'admin.search' %}active{% endif %}" href="{{ url_for('admin.search') }}">
+                  <i class="bi bi-search me-1"></i> Global Search
+                </a>
+              </li>
+
+            {% elif current_user.role == 'examiner' and current_user.status == 'active' %}
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'examiner.dashboard' %}active{% endif %}" href="{{ url_for('examiner.dashboard') }}">
+                  <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'examiner.assigned_examinations' %}active{% endif %}" href="{{ url_for('examiner.assigned_examinations') }}">
+                  <i class="bi bi-journal-check me-1"></i> Assigned Exams
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'examiner.slots' %}active{% endif %}" href="{{ url_for('examiner.slots') }}">
+                  <i class="bi bi-calendar-event me-1"></i> My Slots
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'examiner.students' %}active{% endif %}" href="{{ url_for('examiner.students') }}">
+                  <i class="bi bi-person-lines-fill me-1"></i> Booked Students
+                </a>
+              </li>
+
+            {% elif current_user.role == 'student' %}
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'student.dashboard' %}active{% endif %}" href="{{ url_for('student.dashboard') }}">
+                  <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'student.examinations' %}active{% endif %}" href="{{ url_for('student.examinations') }}">
+                  <i class="bi bi-search me-1"></i> Browse Exams
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'student.my_bookings' %}active{% endif %}" href="{{ url_for('student.my_bookings') }}">
+                  <i class="bi bi-calendar-check me-1"></i> My Bookings
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if request.endpoint in ['student.results', 'student.result_detail'] %}active{% endif %}" href="{{ url_for('student.results') }}">
+                  <i class="bi bi-award me-1"></i> My Results
+                </a>
+              </li>
+            {% endif %}
+          {% endif %}
+        </ul>
+
+        <div class="d-flex align-items-center gap-3">
+          {% if current_user.is_authenticated %}
+            <div class="text-white text-end d-none d-md-block">
+              <span class="fw-semibold">{{ current_user.name }}</span>
+              <span class="user-role-badge role-{{ current_user.role }} ms-1">{{ current_user.role }}</span>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-box-arrow-right me-1"></i> Logout
+            </a>
+          {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-sm fw-semibold">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Login
+            </a>
+            <a href="{{ url_for('auth.register_student') }}" class="btn btn-warning btn-sm fw-semibold text-dark">
+              Student Register
+            </a>
+            <a href="{{ url_for('auth.register_examiner') }}" class="btn btn-outline-light btn-sm">
+              Examiner Join
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Flash Messages Section -->
+  <div class="container-fluid px-lg-4 mt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm" role="alert">
+            <div class="d-flex align-items-center">
+              {% if category == 'success' %}
+                <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+              {% elif category == 'danger' or category == 'error' %}
+                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+              {% elif category == 'warning' %}
+                <i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>
+              {% else %}
+                <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+              {% endif %}
+              <div>{{ message }}</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Main Content Block -->
+  <main class="container-fluid px-lg-4 py-3">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="emp-footer text-center mt-auto">
+    <div class="container">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+        <div>
+          <strong>Examination Management Portal (EMP)</strong> &mdash; Indian Institute of Technology Madras
+        </div>
+        <div class="text-muted small mt-2 mt-md-0">
+          Academic Year {{ current_year }} &bull; Python Flask &bull; Pure Server-Side Processing
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS Bundle (for alerts dismiss & responsive navbar toggler only) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

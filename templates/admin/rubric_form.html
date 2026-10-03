@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit Rubric - EMP Admin{% else %}Add Rubric Criterion - EMP Admin{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="emp-card">
+      <div class="emp-card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">
+          <i class="bi bi-list-check text-primary me-2"></i>
+          {% if is_edit %}Edit Rubric Criterion{% else %}New Rubric Criterion{% endif %} &bull; {{ exam.examination_name }}
+        </h5>
+        <a href="{{ url_for('admin.examination_detail', exam_id=exam.exam_id) }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i> Back to Exam
+        </a>
+      </div>
+
+      <div class="p-4">
+        <form method="POST">
+          <div class="mb-3">
+            <label for="criterion_name" class="form-label fw-semibold">Criterion Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="criterion_name" name="criterion_name"
+                   value="{% if is_edit %}{{ rubric.criterion_name }}{% else %}{{ request.form.get('criterion_name', '') }}{% endif %}"
+                   placeholder="e.g. Code Structure & Syntax Mastery" required autofocus>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="maximum_marks" class="form-label fw-semibold">Maximum Marks for this Criterion <span class="text-danger">*</span></label>
+              <input type="number" step="0.5" class="form-control" id="maximum_marks" name="maximum_marks" min="0.5"
+                     value="{% if is_edit %}{{ rubric.maximum_marks }}{% else %}{{ request.form.get('maximum_marks', 25.0) }}{% endif %}" required>
+              <div class="form-text">Exam max marks: {{ exam.maximum_marks }} pts.</div>
+            </div>
+            <div class="col-md-6">
+              <label for="weightage" class="form-label fw-semibold">Weightage Percentage (%) <span class="text-danger">*</span></label>
+              <input type="number" step="0.5" class="form-control" id="weightage" name="weightage" min="0" max="100"
+                     value="{% if is_edit %}{{ rubric.weightage }}{% else %}{{ request.form.get('weightage', 100.0) }}{% endif %}" required>
+              <div class="form-text">Relative weighting factor.</div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label for="description" class="form-label fw-semibold">Grading Guidelines & Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3"
+                      placeholder="Specify what examiners should look for when assigning marks...">{% if is_edit %}{{ rubric.description or '' }}{% else %}{{ request.form.get('description', '') }}{% endif %}</textarea>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 border-top pt-3">
+            <a href="{{ url_for('admin.examination_detail', exam_id=exam.exam_id) }}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-emp-primary px-4 fw-semibold">
+              <i class="bi bi-check2-circle me-1"></i> {% if is_edit %}Save Changes{% else %}Add Criterion{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
