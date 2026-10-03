@@ -11,23 +11,34 @@ student_bp = Blueprint('student', __name__, url_prefix='/student')
 @login_required
 @role_required('student')
 def check_student():
+    """
+    Blueprint-level Security Guard:
+    Verifies that the user is logged in with the 'student' role.
+    """
     pass
 
 
-# ==========================================
-# STUDENT DASHBOARD
-# ==========================================
+# ==============================================================================
+# 1. STUDENT DASHBOARD
+# ==============================================================================
 @student_bp.route('/')
 @student_bp.route('/dashboard')
 def dashboard():
+    """
+    Student Dashboard:
+    Summarizes student candidate activities:
+    - Active upcoming examination reservations
+    - Completed examinations with published scores
+    - Examinations currently in open booking window
+    """
     now = datetime.now()
 
-    # Active student bookings
+    # Retrieve all student bookings
     all_bookings = Booking.query.filter_by(student_id=current_user.id).order_by(Booking.booking_date.desc()).all()
     upcoming_bookings = [b for b in all_bookings if b.status == 'Booked']
     completed_bookings = [b for b in all_bookings if b.status == 'Completed' or b.is_evaluated]
 
-    # Available examinations currently in booking open period
+    # Discover examinations open for booking right now (Rule 2)
     available_examinations = [
         exam for exam in Examination.query.filter(
             Examination.status.in_(['Booking Open', 'Slot Creation'])
@@ -35,7 +46,7 @@ def dashboard():
         if exam.slot_booking_start <= now <= exam.slot_booking_end
     ]
 
-    # Exam IDs student already has booked
+    # Track exams already booked to display "Already Booked" badges
     active_booked_exam_ids = {
         b.slot.examination_id for b in all_bookings if b.status == 'Booked' and b.slot
     }
@@ -51,11 +62,16 @@ def dashboard():
     )
 
 
-# ==========================================
-# EXAMINATION SEARCH & DETAILS
-# ==========================================
+# ==============================================================================
+# 2. EXAMINATION SEARCH & DETAILS
+# ==============================================================================
 @student_bp.route('/examinations')
 def examinations():
+    """
+    Examination Search & Filtering:
+    Enables candidates to search examinations by keywords, course code,
+    or filter by examination type ('Viva', 'Practical', etc.).
+    """
     now = datetime.now()
     search_query = request.args.get('q', '').strip()
     type_filter = request.args.get('type', '').strip()
@@ -74,7 +90,7 @@ def examinations():
 
     exam_list = query.order_by(Examination.slot_booking_start.asc()).all()
 
-    # Get student's booked exam IDs to show "Already Booked" badge
+    # Identify examinations student has already booked
     my_active_bookings = Booking.query.filter_by(student_id=current_user.id, status='Booked').all()
     my_booked_exam_ids = {b.slot.examination_id for b in my_active_bookings if b.slot}
 
@@ -90,8 +106,12 @@ def examinations():
 
 @student_bp.route('/examinations/<int:exam_id>')
 def examination_detail(exam_id):
+    """
+    Examination Slots & Rubrics Detail View:
+    Displays available examination slots for reservation and rubric criteria.
+    """
     now = datetime.now()
-    exam = Examination.query.get_or_404(exam_id)
+    exam = db.session.get(Examination, exam_id) or abort(404)
     rubrics = Rubric.query.filter_by(examination_id=exam_id).all()
 
     # Slots for this examination
@@ -99,7 +119,7 @@ def examination_detail(exam_id):
         ExaminationSlot.date.asc(), ExaminationSlot.start_time.asc()
     ).all()
 
-    # Check if student already has an active booking for this exam
+    # Check for existing active booking for this specific examination
     existing_booking = Booking.query.filter(
         Booking.student_id == current_user.id,
         Booking.status == 'Booked',
@@ -119,17 +139,23 @@ def examination_detail(exam_id):
     )
 
 
-# ==========================================
-# SLOT BOOKING & CANCELLATION
-# ==========================================
+# ==============================================================================
+# 3. SLOT BOOKING & CANCELLATION CONTROLLERS
+# ==============================================================================
 @student_bp.route('/slots/<int:slot_id>/book', methods=['POST'])
 def book_slot(slot_id):
+    """
+    Slot Booking Controller:
+    Executes core business rules:
+    - Rule 2: Booking allowed only when slot_booking_start <= now <= slot_booking_end.
+    - Rule 5: Duplicate booking prevention (one active booking per examination).
+    - Rule 3 & 4: Capacity check & automatic 'Full' status transition when seats reach 0.
+    """
     now = datetime.now()
-    slot = ExaminationSlot.query.get_or_404(slot_id)
+    slot = db.session.get(ExaminationSlot, slot_id) or abort(404)
     exam = slot.examination
 
-    # RULE 2: Student Booking Period
-    # Student can book slots only when current_time >= slot_booking_start AND current_time <= slot_booking_end
+    # Rule 2: Student Booking Period validation
     if not (exam.slot_booking_start <= now <= exam.slot_booking_end):
         flash(
             f'Booking is closed for this examination. '
@@ -138,8 +164,7 @@ def book_slot(slot_id):
         )
         return redirect(url_for('student.examination_detail', exam_id=exam.exam_id))
 
-    # RULE 5: Duplicate Booking
-    # A student cannot have multiple bookings for the same examination
+    # Rule 5: Duplicate Booking Prevention
     existing_booking = Booking.query.filter(
         Booking.student_id == current_user.id,
         Booking.status == 'Booked',
@@ -150,13 +175,13 @@ def book_slot(slot_id):
         flash(f'You already have an active booking for "{exam.examination_name}". You cannot book multiple slots for the same examination.', 'warning')
         return redirect(url_for('student.examination_detail', exam_id=exam.exam_id))
 
-    # RULE 3 & 4: Capacity check & Automatic Full status
+    # Rules 3 & 4: Capacity check & Auto-Full transition
     slot.recalculate_seats()
     if slot.available_seats <= 0 or slot.status != 'Available':
         flash('This examination slot is already full or unavailable.', 'danger')
         return redirect(url_for('student.examination_detail', exam_id=exam.exam_id))
 
-    # Create Booking
+    # Create new Booking record
     booking = Booking(
         student_id=current_user.id,
         slot_id=slot.slot_id,
@@ -165,7 +190,7 @@ def book_slot(slot_id):
     )
     db.session.add(booking)
 
-    # Recalculate available seats and status
+    # Decrement available capacity and update status
     slot.available_seats -= 1
     if slot.available_seats <= 0:
         slot.status = 'Full'
@@ -178,6 +203,7 @@ def book_slot(slot_id):
 
 @student_bp.route('/bookings')
 def my_bookings():
+    """Renders student's active and past booking history."""
     now = datetime.now()
     bookings_list = Booking.query.filter_by(student_id=current_user.id).order_by(Booking.booking_date.desc()).all()
     return render_template('student/my_bookings.html', bookings=bookings_list, now=now)
@@ -185,6 +211,14 @@ def my_bookings():
 
 @student_bp.route('/bookings/<int:booking_id>/cancel', methods=['POST'])
 def cancel_booking(booking_id):
+    """
+    Booking Cancellation Controller:
+    Implements Business Rules 6 & 8:
+    - Verifies student ownership.
+    - Permits cancellation only before the booking deadline (slot_booking_end).
+    - Status transitions to 'Cancelled' (preserving booking history per Rule 8).
+    - Seat is immediately released back to the slot, restoring 'Full' slots to 'Available'.
+    """
     now = datetime.now()
     booking = Booking.query.filter_by(booking_id=booking_id, student_id=current_user.id).first_or_404()
 
@@ -193,15 +227,15 @@ def cancel_booking(booking_id):
         return redirect(url_for('student.my_bookings'))
 
     exam = booking.slot.examination
-    # Booking cancellation rule: Can cancel before booking deadline
+    # Deadline check
     if now > exam.slot_booking_end:
         flash('Booking deadline has passed. Cancellation is no longer permitted.', 'danger')
         return redirect(url_for('student.my_bookings'))
 
-    # Update status to Cancelled (Rule 8: Booking history preserved)
+    # Transition status to Cancelled (Rule 8: History preserved)
     booking.status = 'Cancelled'
 
-    # Rule 6: Cancelled booking releases seat
+    # Release seat and recalculate slot status (Rule 6)
     slot = booking.slot
     slot.recalculate_seats()
 
@@ -210,12 +244,12 @@ def cancel_booking(booking_id):
     return redirect(url_for('student.my_bookings'))
 
 
-# ==========================================
-# RESULTS & EVALUATION HISTORY
-# ==========================================
+# ==============================================================================
+# 4. RESULTS & SCORECARD CONTROLLERS
+# ==============================================================================
 @student_bp.route('/results')
 def results():
-    # Only show bookings that are Completed or have evaluations
+    """Lists completed examinations with verified marks and percentages."""
     evaluated_bookings = Booking.query.filter(
         Booking.student_id == current_user.id,
         Booking.status == 'Completed'
@@ -226,6 +260,11 @@ def results():
 
 @student_bp.route('/results/<int:booking_id>')
 def result_detail(booking_id):
+    """
+    Official Scorecard Controller:
+    Renders official institution scorecard with rubric criteria breakdown,
+    marks awarded, total percentage, and faculty remarks.
+    """
     booking = Booking.query.filter_by(booking_id=booking_id, student_id=current_user.id).first_or_404()
     if not booking.is_evaluated and booking.status != 'Completed':
         flash('Results for this examination are not yet available.', 'warning')

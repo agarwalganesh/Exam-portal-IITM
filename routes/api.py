@@ -1,10 +1,18 @@
 from flask import Blueprint, jsonify, request
-from models import Examination, ExaminationSlot, Booking, User, ExaminerProfile
+from models import db, Examination, ExaminationSlot, Booking, User, ExaminerProfile
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
+# ==============================================================================
+# 1. EXAMINATIONS REST ENDPOINTS
+# ==============================================================================
 @api_bp.route('/examinations', methods=['GET'])
 def get_examinations():
+    """
+    GET /api/examinations:
+    Returns JSON list of all scheduled examinations with courses, durations,
+    and configured timeline windows. Supports filtering via ?status=...
+    """
     status = request.args.get('status')
     query = Examination.query
     if status:
@@ -33,7 +41,12 @@ def get_examinations():
 
 @api_bp.route('/examinations/<int:exam_id>', methods=['GET'])
 def get_examination_detail(exam_id):
-    e = Examination.query.get_or_404(exam_id)
+    """
+    GET /api/examinations/<id>:
+    Returns JSON object with full examination details, including
+    all defined rubric criteria and scheduled examination slots.
+    """
+    e = db.session.get(Examination, exam_id) or abort(404)
     return jsonify({
         'exam_id': e.exam_id,
         'course_code': e.course.course_code if e.course else None,
@@ -71,8 +84,16 @@ def get_examination_detail(exam_id):
     })
 
 
+# ==============================================================================
+# 2. SLOTS REST ENDPOINTS
+# ==============================================================================
 @api_bp.route('/slots', methods=['GET'])
 def get_slots():
+    """
+    GET /api/slots:
+    Returns JSON list of examination slots with capacity and seat availability.
+    Supports filtering via ?exam_id=... and ?status=...
+    """
     exam_id = request.args.get('exam_id')
     status = request.args.get('status')
     query = ExaminationSlot.query
@@ -99,8 +120,15 @@ def get_slots():
     ])
 
 
+# ==============================================================================
+# 3. BOOKINGS REST ENDPOINTS
+# ==============================================================================
 @api_bp.route('/bookings', methods=['GET'])
 def get_bookings():
+    """
+    GET /api/bookings:
+    Returns JSON list of student reservations with evaluation status and scores.
+    """
     query = Booking.query.all()
     return jsonify([
         {
@@ -120,8 +148,15 @@ def get_bookings():
     ])
 
 
+# ==============================================================================
+# 4. EXAMINERS REST ENDPOINTS
+# ==============================================================================
 @api_bp.route('/examiners', methods=['GET'])
 def get_examiners():
+    """
+    GET /api/examiners:
+    Returns JSON list of academic faculty examiners and their departmental profiles.
+    """
     examiners = User.query.filter_by(role='examiner').all()
     return jsonify([
         {

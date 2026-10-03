@@ -10,30 +10,44 @@ examiner_bp = Blueprint('examiner', __name__, url_prefix='/examiner')
 @login_required
 @role_required('examiner')
 def check_examiner():
+    """
+    Blueprint-level Security Guard:
+    Ensures that only authenticated faculty with the 'examiner' role
+    and an 'active' approved status can access examiner endpoints.
+    """
     pass
 
 
-# ==========================================
-# EXAMINER DASHBOARD
-# ==========================================
+# ==============================================================================
+# 1. EXAMINER DASHBOARD
+# ==============================================================================
 @examiner_bp.route('/')
 @examiner_bp.route('/dashboard')
 def dashboard():
+    """
+    Examiner Dashboard:
+    Computes examiner-specific workload statistics:
+    - Number of slots created by this examiner
+    - Number of students currently booked in their slots
+    - Number of pending evaluations awaiting grading
+    - Active examinations open for slot scheduling
+    """
     now = datetime.now()
-    # Examiner's slots
+    
+    # Retrieve all slots scheduled by the logged-in examiner
     my_slots = ExaminationSlot.query.filter_by(examiner_id=current_user.id).all()
     slot_ids = [s.slot_id for s in my_slots]
 
-    # Active examinations
+    # Active examinations in the system
     active_examinations = Examination.query.filter(
         Examination.status.in_(['Slot Creation', 'Booking Open', 'Closed'])
     ).all()
 
-    # Bookings in my slots
+    # Total students booked in slots belonging strictly to this examiner
     my_bookings = Booking.query.filter(Booking.slot_id.in_(slot_ids)).all() if slot_ids else []
     total_students_booked = sum(1 for b in my_bookings if b.status in ['Booked', 'Completed'])
     
-    # Pending evaluations: Booked students who have not yet been evaluated
+    # Filter pending evaluations: Booked students who have not yet been evaluated
     pending_evaluations = [
         b for b in my_bookings 
         if b.status == 'Booked' and not b.is_evaluated
@@ -51,13 +65,17 @@ def dashboard():
     )
 
 
-# ==========================================
-# ASSIGNED / AVAILABLE EXAMINATIONS
-# ==========================================
+# ==============================================================================
+# 2. ASSIGNED & AVAILABLE EXAMINATIONS
+# ==============================================================================
 @examiner_bp.route('/examinations')
 def assigned_examinations():
+    """
+    Assigned Examinations View:
+    Displays academic examinations available for slot scheduling along
+    with their slot creation deadlines and evaluation rubrics.
+    """
     now = datetime.now()
-    # List examinations open for slot creation or where examiner already has slots
     all_exams = Examination.query.filter(Examination.status != 'Draft').order_by(Examination.slot_creation_start.desc()).all()
     my_slots = ExaminationSlot.query.filter_by(examiner_id=current_user.id).all()
     my_exam_ids = {s.examination_id for s in my_slots}
@@ -70,11 +88,15 @@ def assigned_examinations():
     )
 
 
-# ==========================================
-# SLOT MANAGEMENT
-# ==========================================
+# ==============================================================================
+# 3. EXAMINATION SLOT MANAGEMENT
+# ==============================================================================
 @examiner_bp.route('/slots')
 def slots():
+    """
+    Examiner Slots Directory:
+    Lists time slots scheduled by the logged-in examiner with live seat availability.
+    """
     now = datetime.now()
     exam_filter = request.args.get('exam_id')
 
@@ -90,21 +112,26 @@ def slots():
 
 @examiner_bp.route('/slots/new', methods=['GET', 'POST'])
 def new_slot():
+    """
+    Slot Creation Controller:
+    Implements Business Rule 1 (Slot Creation Period):
+    - Examiner can create slots ONLY during the configured window:
+      slot_creation_start <= current_time <= slot_creation_end.
+    - Sets initial capacity and available seats.
+    """
     now = datetime.now()
     exam_id = request.args.get('exam_id') or request.form.get('examination_id')
     available_exams = Examination.query.filter(Examination.status != 'Draft').all()
 
     selected_exam = None
     if exam_id:
-        selected_exam = Examination.query.get(exam_id)
+        selected_exam = db.session.get(Examination, exam_id)
 
     if request.method == 'POST':
         examination_id = request.form.get('examination_id')
-        exam = Examination.query.get_or_404(examination_id)
+        exam = db.session.get(Examination, examination_id) or abort(404)
 
-        # RULE 1: Slot Creation Period
-        # Examiner can create slots ONLY during the configured slot creation period:
-        # current_time >= slot_creation_start AND current_time <= slot_creation_end
+        # Enforce Business Rule 1: Slot Creation Period
         if not (exam.slot_creation_start <= now <= exam.slot_creation_end):
             flash(
                 f'Slot creation is NOT open for "{exam.examination_name}". '
@@ -144,6 +171,7 @@ def new_slot():
                 flash(err, 'danger')
             return render_template('examiner/slot_form.html', examinations=available_exams, selected_exam=exam, is_edit=False)
 
+        # Create new slot assigned to current logged-in examiner
         new_slot_obj = ExaminationSlot(
             examination_id=exam.exam_id,
             examiner_id=current_user.id,
@@ -165,7 +193,14 @@ def new_slot():
 
 @examiner_bp.route('/slots/<int:slot_id>/edit', methods=['GET', 'POST'])
 def edit_slot(slot_id):
-    slot = ExaminationSlot.query.get_or_404(slot_id)
+    """
+    Slot Update Controller:
+    Implements Business Rule 1 & Rule 6:
+    - Examiner can ONLY edit their own slots (examiner_id == current_user.id).
+    - Can only edit within the slot creation window.
+    - Slot is locked from modification once student booking starts.
+    """
+    slot = db.session.get(ExaminationSlot, slot_id) or abort(404)
     now = datetime.now()
 
     # Rule 6: Examiner authorization
@@ -175,7 +210,7 @@ def edit_slot(slot_id):
 
     exam = slot.examination
 
-    # RULE 1: Can only edit during slot creation period, AND cannot edit if booking has started
+    # Rule 1: Window and booking-lock constraints
     if not (exam.slot_creation_start <= now <= exam.slot_creation_end):
         flash('Slot cannot be edited: Slot creation period has closed for this examination.', 'danger')
         return redirect(url_for('examiner.slots'))
@@ -231,7 +266,12 @@ def edit_slot(slot_id):
 
 @examiner_bp.route('/slots/<int:slot_id>/delete', methods=['POST'])
 def delete_slot(slot_id):
-    slot = ExaminationSlot.query.get_or_404(slot_id)
+    """
+    Slot Deletion Controller:
+    Implements Business Rule 1 & Rule 6:
+    - Can only delete own slot before student booking starts.
+    """
+    slot = db.session.get(ExaminationSlot, slot_id) or abort(404)
     now = datetime.now()
 
     if slot.examiner_id != current_user.id:
@@ -240,7 +280,6 @@ def delete_slot(slot_id):
 
     exam = slot.examination
 
-    # Rule 1: Cannot delete if booking started or creation window closed
     if now >= exam.slot_booking_start:
         flash('Slot cannot be deleted: Student booking has already started.', 'danger')
         return redirect(url_for('examiner.slots'))
@@ -255,12 +294,17 @@ def delete_slot(slot_id):
     return redirect(url_for('examiner.slots'))
 
 
-# ==========================================
-# STUDENT MANAGEMENT & EVALUATION
-# ==========================================
+# ==============================================================================
+# 4. CANDIDATE ROSTER & RUBRIC EVALUATION
+# ==============================================================================
 @examiner_bp.route('/students')
 def students():
-    # Examiner can view students booked ONLY in their own slots
+    """
+    Student Management Controller:
+    Implements Business Rule 6 (Examiner Authorization):
+    - Examiner can view students booked ONLY in slots scheduled by that examiner.
+    - Excludes bookings of other examiners.
+    """
     my_slots = ExaminationSlot.query.filter_by(examiner_id=current_user.id).all()
     slot_ids = [s.slot_id for s in my_slots]
 
@@ -289,11 +333,18 @@ def students():
 
 @examiner_bp.route('/evaluate/<int:booking_id>', methods=['GET', 'POST'])
 def evaluate_student(booking_id):
-    booking = Booking.query.get_or_404(booking_id)
+    """
+    Candidate Evaluation Controller:
+    Implements Business Rule 6 & Rubric Validation:
+    - Validates examiner ownership of the slot.
+    - Validates marks per criterion: 0 <= marks <= rubric.maximum_marks.
+    - Records qualitative remarks.
+    - Transitions booking status to 'Completed'.
+    """
+    booking = db.session.get(Booking, booking_id) or abort(404)
     slot = booking.slot
 
-    # Rule 6: Examiner Authorization
-    # Examiner can evaluate ONLY students booked into slots created by that examiner!
+    # Rule 6: Examiner Authorization check
     if slot.examiner_id != current_user.id:
         flash('Access Denied: You are not authorized to evaluate students booked under another examiner.', 'danger')
         return redirect(url_for('examiner.students'))
@@ -304,7 +355,7 @@ def evaluate_student(booking_id):
     if not rubrics:
         flash('This examination does not have any rubric criteria defined yet. Please contact the administrator.', 'warning')
 
-    # Existing evaluations for this booking
+    # Load existing evaluations for editing
     existing_evals = {e.rubric_id: e for e in booking.evaluations}
 
     if request.method == 'POST':
@@ -321,6 +372,7 @@ def evaluate_student(booking_id):
 
             try:
                 marks_val = float(marks_str)
+                # Validation: Marks must respect rubric maximum marks
                 if marks_val < 0:
                     errors.append(f'Marks for "{rubric.criterion_name}" cannot be negative.')
                 elif marks_val > rubric.maximum_marks:
@@ -335,7 +387,7 @@ def evaluate_student(booking_id):
                 flash(err, 'danger')
             return render_template('examiner/evaluate.html', booking=booking, exam=exam, rubrics=rubrics, existing_evals=existing_evals)
 
-        # Save evaluations in SQLite
+        # Store evaluations in SQLite
         for rubric_id, marks_val, remarks in eval_entries:
             if rubric_id in existing_evals:
                 ev = existing_evals[rubric_id]

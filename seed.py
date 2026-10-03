@@ -4,6 +4,26 @@ from app import create_app
 from models import db, User, ExaminerProfile, Course, Examination, Rubric, ExaminationSlot, Booking, Evaluation
 
 def seed_database():
+    """
+    Seed Database Script:
+    Populates SQLite database with comprehensive, realistic academic records
+    for demonstration and evaluation purposes.
+    
+    Creates:
+    1. Default Admin Account (admin@emp.iitm.ac.in)
+    2. Multiple Faculty Examiners (both active/approved and pending approval)
+    3. Multiple Students
+    4. Four Academic Courses across computer science and engineering
+    5. Four Examinations simulating all timeline phases:
+       - CS101: Booking Open currently (students can reserve slots)
+       - CS202: Slot Creation Open currently (examiners can create slots)
+       - CS303: Completed examination with full evaluations & scorecards
+       - CS404: Draft examination session
+    6. Multi-parameter Rubrics
+    7. Scheduled Examination Slots
+    8. Student Bookings (Upcoming, Completed)
+    9. Detailed Evaluations with numerical scores and qualitative remarks
+    """
     app = create_app()
     with app.app_context():
         print("[EMP Seed] Clearing existing data...")
@@ -12,7 +32,9 @@ def seed_database():
 
         now = datetime.now()
 
-        # 1. Admin Account
+        # ======================================================================
+        # 1. DEFAULT ADMINISTRATOR ACCOUNT (Pre-seeded per Requirement 3)
+        # ======================================================================
         admin = User(
             name="System Administrator",
             email="admin@emp.iitm.ac.in",
@@ -22,8 +44,10 @@ def seed_database():
         admin.set_password("Admin@123")
         db.session.add(admin)
 
-        # 2. Examiners
-        # Approved Examiner 1
+        # ======================================================================
+        # 2. FACULTY EXAMINERS (Approved & Pending Approval)
+        # ======================================================================
+        # Approved Examiner 1: Dr. Priya Sharma
         examiner1 = User(
             name="Dr. Priya Sharma",
             email="priya.sharma@emp.iitm.ac.in",
@@ -43,7 +67,7 @@ def seed_database():
         )
         db.session.add(ep1)
 
-        # Approved Examiner 2
+        # Approved Examiner 2: Prof. Rajesh Kumar
         examiner2 = User(
             name="Prof. Rajesh Kumar",
             email="rajesh.kumar@emp.iitm.ac.in",
@@ -63,12 +87,12 @@ def seed_database():
         )
         db.session.add(ep2)
 
-        # Pending Examiner (to demonstrate Admin approval workflow)
+        # Pending Examiner: Dr. Ananya Sen (Demonstrates admin approval workflow)
         examiner3 = User(
             name="Dr. Ananya Sen",
             email="ananya.sen@emp.iitm.ac.in",
             role="examiner",
-            status="pending"
+            status="pending"  # Unapproved status
         )
         examiner3.set_password("Examiner@123")
         db.session.add(examiner3)
@@ -83,7 +107,9 @@ def seed_database():
         )
         db.session.add(ep3)
 
-        # 3. Students
+        # ======================================================================
+        # 3. STUDENT CANDIDATES
+        # ======================================================================
         students_data = [
             ("Rahul Verma", "rahul.verma@student.iitm.ac.in"),
             ("Sneha Patel", "sneha.patel@student.iitm.ac.in"),
@@ -104,7 +130,9 @@ def seed_database():
 
         db.session.flush()
 
-        # 4. Courses
+        # ======================================================================
+        # 4. ACADEMIC COURSES
+        # ======================================================================
         c1 = Course(
             course_code="CS101",
             course_name="Introduction to Programming & Problem Solving",
@@ -132,8 +160,10 @@ def seed_database():
         db.session.add_all([c1, c2, c3, c4])
         db.session.flush()
 
-        # 5. Examinations
-        # Exam 1: CS101 - Booking Open right now!
+        # ======================================================================
+        # 5. EXAMINATIONS ACROSS TIMELINE PHASES
+        # ======================================================================
+        # Examination 1: CS101 - Actively OPEN FOR STUDENT BOOKING right now!
         exam1 = Examination(
             course_id=c1.course_id,
             examination_name="CS101 Viva Voce Assessment",
@@ -147,7 +177,7 @@ def seed_database():
             status="Booking Open"
         )
 
-        # Exam 2: CS202 - Slot Creation Open right now!
+        # Examination 2: CS202 - Actively OPEN FOR EXAMINER SLOT CREATION right now!
         exam2 = Examination(
             course_id=c2.course_id,
             examination_name="CS202 Practical Lab Demonstration",
@@ -161,7 +191,7 @@ def seed_database():
             status="Slot Creation"
         )
 
-        # Exam 3: CS303 - Completed with results and evaluations!
+        # Examination 3: CS303 - COMPLETED with published evaluations and results!
         exam3 = Examination(
             course_id=c3.course_id,
             examination_name="CS303 Final Project Demo & Evaluation",
@@ -175,7 +205,7 @@ def seed_database():
             status="Completed"
         )
 
-        # Exam 4: CS404 - Draft status
+        # Examination 4: CS404 - DRAFT examination
         exam4 = Examination(
             course_id=c4.course_id,
             examination_name="CS404 Architecture & Design Assessment",
@@ -192,8 +222,10 @@ def seed_database():
         db.session.add_all([exam1, exam2, exam3, exam4])
         db.session.flush()
 
-        # 6. Rubrics
-        # Rubrics for Exam 1 (CS101)
+        # ======================================================================
+        # 6. RUBRIC CRITERIA
+        # ======================================================================
+        # Rubrics for Exam 1 (CS101 Viva Voce)
         r1_1 = Rubric(
             examination_id=exam1.exam_id,
             criterion_name="Code Understanding & Syntax",
@@ -216,7 +248,7 @@ def seed_database():
             description="Clarity of thought, technical terminology, and confidence during viva."
         )
 
-        # Rubrics for Exam 3 (CS303)
+        # Rubrics for Exam 3 (CS303 Project Demo)
         r3_1 = Rubric(
             examination_id=exam3.exam_id,
             criterion_name="ER Diagram & Schema Normalization",
@@ -242,11 +274,13 @@ def seed_database():
         db.session.add_all([r1_1, r1_2, r1_3, r3_1, r3_2, r3_3])
         db.session.flush()
 
-        # 7. Examination Slots
-        # Slots for Exam 1 (Booking Open)
+        # ======================================================================
+        # 7. EXAMINATION TIME SLOTS
+        # ======================================================================
         tomorrow = now.date() + timedelta(days=1)
         day_after = now.date() + timedelta(days=2)
 
+        # Slots for Exam 1 (Booking Open)
         s1 = ExaminationSlot(
             examination_id=exam1.exam_id,
             examiner_id=examiner1.id,
@@ -278,7 +312,7 @@ def seed_database():
             status="Available"
         )
 
-        # Slots for Exam 3 (Completed)
+        # Slots for Exam 3 (Completed Evaluation Session)
         past_date = now.date() - timedelta(days=5)
         s_comp1 = ExaminationSlot(
             examination_id=exam3.exam_id,
@@ -294,22 +328,24 @@ def seed_database():
         db.session.add_all([s1, s2, s3, s_comp1])
         db.session.flush()
 
-        # 8. Bookings
-        # Booking in Exam 1 (Upcoming Booked) for Rahul Verma
+        # ======================================================================
+        # 8. STUDENT BOOKINGS
+        # ======================================================================
+        # Upcoming reservation for Rahul Verma in Exam 1
         b1 = Booking(
             student_id=created_students[0].id,  # Rahul
             slot_id=s1.slot_id,
             booking_date=now - timedelta(hours=6),
             status="Booked"
         )
-        # Booking in Exam 3 (Completed) for Rahul Verma
+        # Completed reservation for Rahul Verma in Exam 3
         b_comp1 = Booking(
             student_id=created_students[0].id,  # Rahul
             slot_id=s_comp1.slot_id,
             booking_date=now - timedelta(days=6),
             status="Completed"
         )
-        # Booking in Exam 3 (Completed) for Sneha Patel
+        # Completed reservation for Sneha Patel in Exam 3
         b_comp2 = Booking(
             student_id=created_students[1].id,  # Sneha
             slot_id=s_comp1.slot_id,
@@ -320,7 +356,9 @@ def seed_database():
         db.session.add_all([b1, b_comp1, b_comp2])
         db.session.flush()
 
-        # 9. Evaluations for Exam 3 completed bookings
+        # ======================================================================
+        # 9. EVALUATIONS (Rubric Scores & Qualitative Remarks)
+        # ======================================================================
         # Rahul's evaluations
         ev1_1 = Evaluation(
             booking_id=b_comp1.booking_id,
@@ -369,7 +407,7 @@ def seed_database():
 
         db.session.add_all([ev1_1, ev1_2, ev1_3, ev2_1, ev2_2, ev2_3])
 
-        # Recalculate seats
+        # Synchronize seats and auto-full statuses
         s1.recalculate_seats()
         s2.recalculate_seats()
         s3.recalculate_seats()

@@ -11,15 +11,31 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 @login_required
 @role_required('admin')
 def check_admin():
+    """
+    Blueprint-level Security Guard:
+    Intercepts all incoming requests to /admin/* routes.
+    Ensures the user is authenticated and possesses the 'admin' role.
+    """
     pass
 
 
-# ==========================================
-# DASHBOARD
-# ==========================================
+# ==============================================================================
+# 1. ADMIN DASHBOARD & INSTITUTIONAL ANALYTICS
+# ==============================================================================
 @admin_bp.route('/')
 @admin_bp.route('/dashboard')
 def dashboard():
+    """
+    Admin Dashboard Controller:
+    Computes key performance indicators (KPIs) and metrics across the portal:
+    - Total Courses
+    - Total Examinations
+    - Total Examiners & Pending Approvals count
+    - Total Students
+    - Total Examination Slots
+    - Total Bookings
+    Also retrieves the most recent active examinations and bookings.
+    """
     total_courses = Course.query.count()
     total_examinations = Examination.query.count()
     total_examiners = User.query.filter_by(role='examiner').count()
@@ -27,6 +43,8 @@ def dashboard():
     total_students = User.query.filter_by(role='student').count()
     total_slots = ExaminationSlot.query.count()
     total_bookings = Booking.query.count()
+    
+    # Recent items for fast overview
     recent_bookings = Booking.query.order_by(Booking.booking_date.desc()).limit(6).all()
     recent_examinations = Examination.query.order_by(Examination.exam_id.desc()).limit(5).all()
 
@@ -44,16 +62,22 @@ def dashboard():
     )
 
 
-# ==========================================
-# COURSE MANAGEMENT
-# ==========================================
+# ==============================================================================
+# 2. COURSE MANAGEMENT CONTROLLERS
+# ==============================================================================
 @admin_bp.route('/courses')
 def courses():
+    """
+    Course Directory & Search:
+    Renders list of courses with optional server-side keyword search
+    and status filtering ('active' or 'inactive').
+    """
     search_query = request.args.get('q', '').strip()
     status_filter = request.args.get('status', '').strip()
 
     query = Course.query
     if search_query:
+        # Case-insensitive search on course code, course name, and description
         query = query.filter(
             or_(
                 Course.course_code.ilike(f'%{search_query}%'),
@@ -70,16 +94,22 @@ def courses():
 
 @admin_bp.route('/courses/new', methods=['GET', 'POST'])
 def new_course():
+    """
+    Course Creation Controller:
+    Validates course code uniqueness and creates new academic course records.
+    """
     if request.method == 'POST':
         code = request.form.get('course_code', '').strip().upper()
         name = request.form.get('course_name', '').strip()
         description = request.form.get('description', '').strip()
         status = request.form.get('status', 'active')
 
+        # Backend validation
         if not code or not name:
             flash('Course Code and Course Name are required.', 'danger')
             return render_template('admin/course_form.html', code=code, name=name, description=description, status=status)
 
+        # Unique course code constraint check
         existing = Course.query.filter_by(course_code=code).first()
         if existing:
             flash(f'Course code "{code}" already exists.', 'danger')
@@ -96,7 +126,11 @@ def new_course():
 
 @admin_bp.route('/courses/<int:course_id>/edit', methods=['GET', 'POST'])
 def edit_course(course_id):
-    course = Course.query.get_or_404(course_id)
+    """
+    Course Update Controller:
+    Edits course parameters while verifying course code uniqueness against other records.
+    """
+    course = db.session.get(Course, course_id) or abort(404)
     if request.method == 'POST':
         code = request.form.get('course_code', '').strip().upper()
         name = request.form.get('course_name', '').strip()
@@ -107,6 +141,7 @@ def edit_course(course_id):
             flash('Course Code and Course Name are required.', 'danger')
             return render_template('admin/course_form.html', course=course, is_edit=True)
 
+        # Ensure edited course code does not collide with another course
         existing = Course.query.filter(Course.course_code == code, Course.course_id != course_id).first()
         if existing:
             flash(f'Course code "{code}" is already in use by another course.', 'danger')
@@ -125,7 +160,8 @@ def edit_course(course_id):
 
 @admin_bp.route('/courses/<int:course_id>/toggle-status', methods=['POST'])
 def toggle_course_status(course_id):
-    course = Course.query.get_or_404(course_id)
+    """Toggles a course status between 'active' and 'inactive'."""
+    course = db.session.get(Course, course_id) or abort(404)
     course.status = 'inactive' if course.status == 'active' else 'active'
     db.session.commit()
     flash(f'Course "{course.course_name}" status set to {course.status}.', 'info')
@@ -134,7 +170,8 @@ def toggle_course_status(course_id):
 
 @admin_bp.route('/courses/<int:course_id>/delete', methods=['POST'])
 def delete_course(course_id):
-    course = Course.query.get_or_404(course_id)
+    """Deletes a course and cascades deletion to associated examination sessions."""
+    course = db.session.get(Course, course_id) or abort(404)
     name = course.course_name
     db.session.delete(course)
     db.session.commit()
@@ -142,11 +179,17 @@ def delete_course(course_id):
     return redirect(url_for('admin.courses'))
 
 
-# ==========================================
-# EXAMINATION MANAGEMENT
-# ==========================================
+# ==============================================================================
+# 3. EXAMINATION MANAGEMENT CONTROLLERS
+# ==============================================================================
 @admin_bp.route('/examinations')
 def examinations():
+    """
+    Examinations Catalog:
+    Lists all scheduled examinations with multi-parameter filtering
+    by status ('Draft', 'Slot Creation', 'Booking Open', 'Closed', 'Completed')
+    and examination type ('Viva', 'Practical', 'Project Demo', 'Assessment').
+    """
     search_query = request.args.get('q', '').strip()
     status_filter = request.args.get('status', '').strip()
     type_filter = request.args.get('type', '').strip()
@@ -171,6 +214,11 @@ def examinations():
 
 @admin_bp.route('/examinations/new', methods=['GET', 'POST'])
 def new_examination():
+    """
+    Examination Creation Controller:
+    Validates timeline configuration (slot creation window vs student booking window),
+    duration, and maximum marks before creating an examination.
+    """
     courses = Course.query.filter_by(status='active').order_by(Course.course_code).all()
     if request.method == 'POST':
         course_id = request.form.get('course_id')
@@ -184,7 +232,7 @@ def new_examination():
         slot_booking_end_str = request.form.get('slot_booking_end')
         status = request.form.get('status', 'Draft')
 
-        # Validation
+        # Backend validations
         errors = []
         if not course_id:
             errors.append('Please select a course.')
@@ -205,6 +253,7 @@ def new_examination():
         except ValueError:
             errors.append('Maximum marks must be a valid number.')
 
+        # Parse and validate timeline windows
         slot_creation_start = None
         slot_creation_end = None
         slot_booking_start = None
@@ -250,7 +299,12 @@ def new_examination():
 
 @admin_bp.route('/examinations/<int:exam_id>')
 def examination_detail(exam_id):
-    exam = Examination.query.get_or_404(exam_id)
+    """
+    Examination Detailed View:
+    Displays configured timelines, rubric criteria breakdown,
+    and all scheduled slots with live examiner reassignment options.
+    """
+    exam = db.session.get(Examination, exam_id) or abort(404)
     rubrics = Rubric.query.filter_by(examination_id=exam_id).all()
     slots = ExaminationSlot.query.filter_by(examination_id=exam_id).order_by(ExaminationSlot.date, ExaminationSlot.start_time).all()
     examiners = User.query.filter_by(role='examiner', status='active').all()
@@ -259,7 +313,8 @@ def examination_detail(exam_id):
 
 @admin_bp.route('/examinations/<int:exam_id>/edit', methods=['GET', 'POST'])
 def edit_examination(exam_id):
-    exam = Examination.query.get_or_404(exam_id)
+    """Examination Update Controller: Updates exam timeline, duration, marks, and parameters."""
+    exam = db.session.get(Examination, exam_id) or abort(404)
     courses = Course.query.filter_by(status='active').order_by(Course.course_code).all()
 
     if request.method == 'POST':
@@ -331,7 +386,8 @@ def edit_examination(exam_id):
 
 @admin_bp.route('/examinations/<int:exam_id>/status', methods=['POST'])
 def update_examination_status(exam_id):
-    exam = Examination.query.get_or_404(exam_id)
+    """Quick Status Override: Allows Admin to manually transition exam status."""
+    exam = db.session.get(Examination, exam_id) or abort(404)
     new_status = request.form.get('status')
     if new_status in ['Draft', 'Slot Creation', 'Booking Open', 'Closed', 'Completed']:
         exam.status = new_status
@@ -344,7 +400,8 @@ def update_examination_status(exam_id):
 
 @admin_bp.route('/examinations/<int:exam_id>/delete', methods=['POST'])
 def delete_examination(exam_id):
-    exam = Examination.query.get_or_404(exam_id)
+    """Deletes an examination and all related rubrics, slots, and bookings."""
+    exam = db.session.get(Examination, exam_id) or abort(404)
     name = exam.examination_name
     db.session.delete(exam)
     db.session.commit()
@@ -352,12 +409,16 @@ def delete_examination(exam_id):
     return redirect(url_for('admin.examinations'))
 
 
-# ==========================================
-# RUBRIC MANAGEMENT
-# ==========================================
+# ==============================================================================
+# 4. RUBRIC MANAGEMENT CONTROLLERS
+# ==============================================================================
 @admin_bp.route('/examinations/<int:exam_id>/rubrics/new', methods=['GET', 'POST'])
 def new_rubric(exam_id):
-    exam = Examination.query.get_or_404(exam_id)
+    """
+    Rubric Creation Controller:
+    Defines evaluation criteria, maximum marks, weightage, and guidelines for an exam.
+    """
+    exam = db.session.get(Examination, exam_id) or abort(404)
     if request.method == 'POST':
         criterion_name = request.form.get('criterion_name', '').strip()
         maximum_marks = request.form.get('maximum_marks')
@@ -404,7 +465,8 @@ def new_rubric(exam_id):
 
 @admin_bp.route('/rubrics/<int:rubric_id>/edit', methods=['GET', 'POST'])
 def edit_rubric(rubric_id):
-    rubric = Rubric.query.get_or_404(rubric_id)
+    """Rubric Update Controller: Modifies rubric criterion parameters."""
+    rubric = db.session.get(Rubric, rubric_id) or abort(404)
     exam = rubric.examination
 
     if request.method == 'POST':
@@ -449,7 +511,8 @@ def edit_rubric(rubric_id):
 
 @admin_bp.route('/rubrics/<int:rubric_id>/delete', methods=['POST'])
 def delete_rubric(rubric_id):
-    rubric = Rubric.query.get_or_404(rubric_id)
+    """Deletes a rubric criterion."""
+    rubric = db.session.get(Rubric, rubric_id) or abort(404)
     exam_id = rubric.examination_id
     db.session.delete(rubric)
     db.session.commit()
@@ -457,11 +520,16 @@ def delete_rubric(rubric_id):
     return redirect(url_for('admin.examination_detail', exam_id=exam_id))
 
 
-# ==========================================
-# EXAMINER MANAGEMENT
-# ==========================================
+# ==============================================================================
+# 5. EXAMINER MANAGEMENT & APPROVAL CONTROLLERS
+# ==============================================================================
 @admin_bp.route('/examiners')
 def examiners():
+    """
+    Examiners Directory:
+    Lists faculty examiners with filtering by status ('pending', 'active', 'inactive')
+    and keyword search across name, email, and academic department.
+    """
     search_query = request.args.get('q', '').strip()
     status_filter = request.args.get('status', '').strip()
 
@@ -483,6 +551,7 @@ def examiners():
 
 @admin_bp.route('/examiners/<int:user_id>')
 def examiner_detail(user_id):
+    """Examiner Profile: Displays academic details, contact info, and scheduled slot history."""
     examiner = User.query.filter_by(id=user_id, role='examiner').first_or_404()
     slots = ExaminationSlot.query.filter_by(examiner_id=user_id).order_by(ExaminationSlot.date.desc()).all()
     return render_template('admin/examiner_detail.html', examiner=examiner, slots=slots)
@@ -490,6 +559,12 @@ def examiner_detail(user_id):
 
 @admin_bp.route('/examiners/<int:user_id>/approve', methods=['POST'])
 def approve_examiner(user_id):
+    """
+    Requirement 3:
+    Admin approves a newly registered examiner.
+    Updates examiner user status to 'active' and ExaminerProfile to 'approved'.
+    Enables examiner to log in and access the Examiner Dashboard.
+    """
     examiner = User.query.filter_by(id=user_id, role='examiner').first_or_404()
     examiner.status = 'active'
     if examiner.examiner_profile:
@@ -501,6 +576,7 @@ def approve_examiner(user_id):
 
 @admin_bp.route('/examiners/<int:user_id>/toggle-status', methods=['POST'])
 def toggle_examiner_status(user_id):
+    """Deactivates an active examiner or reactivates an inactive examiner."""
     examiner = User.query.filter_by(id=user_id, role='examiner').first_or_404()
     if examiner.status == 'active':
         examiner.status = 'inactive'
@@ -516,11 +592,12 @@ def toggle_examiner_status(user_id):
     return redirect(request.referrer or url_for('admin.examiners'))
 
 
-# ==========================================
-# EXAMINATION SLOT MANAGEMENT & REASSIGNMENT
-# ==========================================
+# ==============================================================================
+# 6. EXAMINATION SLOT MANAGEMENT & REASSIGNMENT CONTROLLERS
+# ==============================================================================
 @admin_bp.route('/slots')
 def slots():
+    """Lists all examination slots with filters for examination ID and slot status."""
     exam_id = request.args.get('exam_id')
     status_filter = request.args.get('status', '').strip()
 
@@ -539,7 +616,11 @@ def slots():
 
 @admin_bp.route('/slots/<int:slot_id>/reassign', methods=['POST'])
 def reassign_slot(slot_id):
-    slot = ExaminationSlot.query.get_or_404(slot_id)
+    """
+    Business Rule 7 (Admin Override):
+    Reassigns a slot from one faculty examiner to another approved examiner.
+    """
+    slot = db.session.get(ExaminationSlot, slot_id) or abort(404)
     new_examiner_id = request.form.get('examiner_id')
 
     new_examiner = User.query.filter_by(id=new_examiner_id, role='examiner', status='active').first()
@@ -556,7 +637,8 @@ def reassign_slot(slot_id):
 
 @admin_bp.route('/slots/<int:slot_id>/cancel', methods=['POST'])
 def cancel_slot(slot_id):
-    slot = ExaminationSlot.query.get_or_404(slot_id)
+    """Cancels an examination slot."""
+    slot = db.session.get(ExaminationSlot, slot_id) or abort(404)
     slot.status = 'Cancelled'
     db.session.commit()
     flash(f'Slot #{slot.slot_id} marked as Cancelled.', 'warning')
@@ -565,7 +647,8 @@ def cancel_slot(slot_id):
 
 @admin_bp.route('/slots/<int:slot_id>/status', methods=['POST'])
 def update_slot_status(slot_id):
-    slot = ExaminationSlot.query.get_or_404(slot_id)
+    """Admin override to update slot status manually."""
+    slot = db.session.get(ExaminationSlot, slot_id) or abort(404)
     new_status = request.form.get('status')
     if new_status in ['Available', 'Full', 'Cancelled', 'Completed']:
         slot.status = new_status
@@ -574,11 +657,16 @@ def update_slot_status(slot_id):
     return redirect(request.referrer or url_for('admin.slots'))
 
 
-# ==========================================
-# BOOKING MANAGEMENT & RESCHEDULING
-# ==========================================
+# ==============================================================================
+# 7. BOOKING MANAGEMENT & RESCHEDULING CONTROLLERS
+# ==============================================================================
 @admin_bp.route('/bookings')
 def bookings():
+    """
+    Bookings Directory:
+    Monitors all student bookings across examinations with filters
+    by status ('Booked', 'Completed', 'Cancelled') and student search.
+    """
     search_query = request.args.get('q', '').strip()
     status_filter = request.args.get('status', '').strip()
     exam_id = request.args.get('exam_id')
@@ -605,11 +693,18 @@ def bookings():
 
 @admin_bp.route('/bookings/<int:booking_id>/reschedule', methods=['GET', 'POST'])
 def reschedule_booking(booking_id):
-    booking = Booking.query.get_or_404(booking_id)
+    """
+    Business Rule 7 (Admin Override):
+    Admin reschedules a student's active booking to an alternative available slot
+    belonging to the same examination.
+    
+    Automatically synchronizes seat capacities on both the old and new slots.
+    """
+    booking = db.session.get(Booking, booking_id) or abort(404)
     current_slot = booking.slot
     exam = current_slot.examination
 
-    # Available alternative slots for the same examination
+    # Query alternative available slots for this exam
     available_slots = ExaminationSlot.query.filter(
         ExaminationSlot.examination_id == exam.exam_id,
         ExaminationSlot.slot_id != current_slot.slot_id,
@@ -619,8 +714,9 @@ def reschedule_booking(booking_id):
 
     if request.method == 'POST':
         new_slot_id = request.form.get('new_slot_id')
-        new_slot = ExaminationSlot.query.get(new_slot_id)
+        new_slot = db.session.get(ExaminationSlot, new_slot_id)
 
+        # Validate target slot
         if not new_slot or new_slot.examination_id != exam.exam_id:
             flash('Invalid target slot selected.', 'danger')
             return render_template('admin/reschedule_booking.html', booking=booking, exam=exam, current_slot=current_slot, available_slots=available_slots)
@@ -629,12 +725,12 @@ def reschedule_booking(booking_id):
             flash('Target slot is already full.', 'danger')
             return render_template('admin/reschedule_booking.html', booking=booking, exam=exam, current_slot=current_slot, available_slots=available_slots)
 
-        # Move booking
+        # Move booking to target slot
         old_slot = booking.slot
         booking.slot_id = new_slot.slot_id
         booking.status = 'Booked'
 
-        # Recalculate seats for both slots
+        # Recalculate seat availability and auto-full status for both slots
         old_slot.recalculate_seats()
         new_slot.recalculate_seats()
 
@@ -647,7 +743,12 @@ def reschedule_booking(booking_id):
 
 @admin_bp.route('/bookings/<int:booking_id>/cancel', methods=['POST'])
 def cancel_booking(booking_id):
-    booking = Booking.query.get_or_404(booking_id)
+    """
+    Business Rules 6 & 8:
+    Admin cancels a student booking. Transitions status to 'Cancelled'
+    (preserving history) and releases the reserved seat back to the slot.
+    """
+    booking = db.session.get(Booking, booking_id) or abort(404)
     booking.status = 'Cancelled'
     booking.slot.recalculate_seats()
     db.session.commit()
@@ -655,11 +756,18 @@ def cancel_booking(booking_id):
     return redirect(url_for('admin.bookings'))
 
 
-# ==========================================
-# SERVER-SIDE GLOBAL SEARCH
-# ==========================================
+# ==============================================================================
+# 8. GLOBAL SERVER-SIDE SEARCH
+# ==============================================================================
 @admin_bp.route('/search')
 def search():
+    """
+    Requirement 5: Server-side search across:
+    1. Students (name, email)
+    2. Examiners (name, email, department)
+    3. Examinations (name, type, course code, course name)
+    4. Bookings (student name, email, exam title)
+    """
     query_str = request.args.get('q', '').strip()
     results = {
         'students': [],
@@ -669,13 +777,13 @@ def search():
     }
 
     if query_str:
-        # Students
+        # Search Students
         results['students'] = User.query.filter(
             User.role == 'student',
             or_(User.name.ilike(f'%{query_str}%'), User.email.ilike(f'%{query_str}%'))
         ).all()
 
-        # Examiners
+        # Search Examiners
         results['examiners'] = User.query.filter(
             User.role == 'examiner',
             or_(
@@ -685,7 +793,7 @@ def search():
             )
         ).all()
 
-        # Examinations
+        # Search Examinations
         results['examinations'] = Examination.query.filter(
             or_(
                 Examination.examination_name.ilike(f'%{query_str}%'),
@@ -695,7 +803,7 @@ def search():
             )
         ).all()
 
-        # Bookings
+        # Search Bookings
         results['bookings'] = Booking.query.filter(
             or_(
                 Booking.student.has(User.name.ilike(f'%{query_str}%')),
