@@ -16,8 +16,11 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Ensure local instance folder exists for storing SQLite database
-    os.makedirs(os.path.join(app.root_path, 'instance'), exist_ok=True)
+    # Ensure local instance folder exists for storing SQLite database if writable
+    try:
+        os.makedirs(os.path.join(app.root_path, 'instance'), exist_ok=True)
+    except OSError:
+        pass
 
     # 1. Initialize SQLAlchemy database with application context
     db.init_app(app)
