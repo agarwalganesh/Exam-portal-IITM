@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, abort
 from models import db, Examination, ExaminationSlot, Booking, User, ExaminerProfile
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -82,8 +82,7 @@ def get_examination_detail(exam_id):
             } for s in e.slots
         ]
     })
-
-
+    
 # ==============================================================================
 # 2. SLOTS REST ENDPOINTS
 # ==============================================================================

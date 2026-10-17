@@ -430,14 +430,14 @@ def new_rubric(exam_id):
             errors.append('Criterion name is required.')
 
         try:
-            max_m = float(maximum_marks)
+            max_m = float(maximum_marks) if maximum_marks not in [None, ''] else 25.0
             if max_m <= 0:
                 errors.append('Maximum marks must be greater than 0.')
         except (ValueError, TypeError):
             errors.append('Maximum marks must be a valid number.')
 
         try:
-            wt = float(weightage)
+            wt = float(weightage) if weightage not in [None, ''] else 100.0
             if wt < 0:
                 errors.append('Weightage cannot be negative.')
         except (ValueError, TypeError):
@@ -448,17 +448,22 @@ def new_rubric(exam_id):
                 flash(err, 'danger')
             return render_template('admin/rubric_form.html', exam=exam, is_edit=False)
 
-        rubric = Rubric(
-            examination_id=exam_id,
-            criterion_name=criterion_name,
-            maximum_marks=max_m,
-            weightage=wt,
-            description=description
-        )
-        db.session.add(rubric)
-        db.session.commit()
-        flash(f'Rubric criterion "{criterion_name}" added successfully.', 'success')
-        return redirect(url_for('admin.examination_detail', exam_id=exam_id))
+        try:
+            rubric = Rubric(
+                examination_id=exam_id,
+                criterion_name=criterion_name,
+                maximum_marks=max_m,
+                weightage=wt,
+                description=description
+            )
+            db.session.add(rubric)
+            db.session.commit()
+            flash(f'Rubric criterion "{criterion_name}" added successfully.', 'success')
+            return redirect(url_for('admin.examination_detail', exam_id=exam_id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Could not save rubric criterion: {str(e)}', 'danger')
+            return render_template('admin/rubric_form.html', exam=exam, is_edit=False)
 
     return render_template('admin/rubric_form.html', exam=exam, is_edit=False)
 
@@ -480,14 +485,14 @@ def edit_rubric(rubric_id):
             errors.append('Criterion name is required.')
 
         try:
-            max_m = float(maximum_marks)
+            max_m = float(maximum_marks) if maximum_marks not in [None, ''] else rubric.maximum_marks
             if max_m <= 0:
                 errors.append('Maximum marks must be greater than 0.')
         except (ValueError, TypeError):
             errors.append('Maximum marks must be a valid number.')
 
         try:
-            wt = float(weightage)
+            wt = float(weightage) if weightage not in [None, ''] else rubric.weightage
             if wt < 0:
                 errors.append('Weightage cannot be negative.')
         except (ValueError, TypeError):
@@ -498,13 +503,18 @@ def edit_rubric(rubric_id):
                 flash(err, 'danger')
             return render_template('admin/rubric_form.html', exam=exam, rubric=rubric, is_edit=True)
 
-        rubric.criterion_name = criterion_name
-        rubric.maximum_marks = max_m
-        rubric.weightage = wt
-        rubric.description = description
-        db.session.commit()
-        flash(f'Rubric criterion "{criterion_name}" updated successfully.', 'success')
-        return redirect(url_for('admin.examination_detail', exam_id=exam.exam_id))
+        try:
+            rubric.criterion_name = criterion_name
+            rubric.maximum_marks = max_m
+            rubric.weightage = wt
+            rubric.description = description
+            db.session.commit()
+            flash(f'Rubric criterion "{criterion_name}" updated successfully.', 'success')
+            return redirect(url_for('admin.examination_detail', exam_id=exam.exam_id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Could not update rubric criterion: {str(e)}', 'danger')
+            return render_template('admin/rubric_form.html', exam=exam, rubric=rubric, is_edit=True)
 
     return render_template('admin/rubric_form.html', exam=exam, rubric=rubric, is_edit=True)
 

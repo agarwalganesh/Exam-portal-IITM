@@ -6,7 +6,6 @@ from models import db, User, Course, Examination, Rubric, ExaminationSlot, Booki
 from utils.decorators import role_required
 
 student_bp = Blueprint('student', __name__, url_prefix='/student')
-
 @student_bp.before_request
 @login_required
 @role_required('student')
@@ -16,7 +15,6 @@ def check_student():
     Verifies that the user is logged in with the 'student' role.
     """
     pass
-
 
 # ==============================================================================
 # 1. STUDENT DASHBOARD
