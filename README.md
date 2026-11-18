@@ -720,27 +720,3 @@ OK
 6. **Data Cascade Protections**: Foreign keys with `ondelete='CASCADE'` ensure relational referential integrity when courses or examinations are deleted.
 
 ---
-
-## 16. Viva Voce & Project Defense Guide
-
-Common academic evaluation questions and their architectural answers:
-
-### Q1: Why did you use pure server-side rendering instead of a JavaScript framework like React or Vue?
-> **Answer**: Examination systems require strict deterministic workflows, high reliability, and universal accessibility across legacy institutional browsers. Using Flask with Jinja2 guarantees that business logic (booking windows, duplicate checks, seat decrements) is enforced strictly on the server without relying on client-side state that could be manipulated.
-
-### Q2: How is concurrency and over-booking handled?
-> **Answer**: Capacity is managed via integer counter tracking (`available_seats`) and checked within atomic database transactions. The `recalculate_seats()` method computes actual active bookings against `maximum_student_capacity`. If available seats reach 0, the slot status is immediately transitioned to `'Full'`.
-
-### Q3: How do you enforce that examiners cannot grade students outside their slots?
-> **Answer**: In `routes/examiner.py`, the `evaluate_student` route inspects the student's booking: `if booking.slot.examiner_id != current_user.id: abort(403)`. An examiner cannot view or evaluate candidates assigned to another faculty member.
-
-### Q4: What happens when a student cancels an examination booking?
-> **Answer**: Per Business Rule 8, the record is **not deleted**. Its status is updated to `'Cancelled'`. The slot's `recalculate_seats()` method is executed, which increments `available_seats` and restores a `'Full'` slot back to `'Available'`.
-
----
-
-## 17. AI & LLM Usage Declaration
-
-Per Requirements 21 & 22:
-- **AI Coding Assistance**: Google Antigravity AI pair programming assistant was utilized during the development of this application for boilerplate generation, Bootstrap UI structuring, and automated test suite creation.
-- **Architectural Understanding**: The complete architecture, relational schemas, role authorizations, business rule logic, and Flask controllers are fully transparent, commented, and comprehensible for oral academic defense.
