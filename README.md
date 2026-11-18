@@ -529,17 +529,20 @@ Open your web browser and navigate to:
 
 ## 11. Demo Credentials Table
 
-All accounts are pre-configured in `seed.py` for immediate demonstration:
+All accounts are pre-configured in `seed.py` with `@gmail.com` for immediate demonstration:
 
 | Role | Name | Email | Password | Pre-Configured State / Test Purpose |
 | :--- | :--- | :--- | :--- | :--- |
-| **Admin** | System Administrator | `admin@emp.iitm.ac.in` | `Admin@123` | Institutional superuser: course/exam CRUD, approvals, slot reassignment, rescheduling, global search. |
-| **Examiner** | Dr. Priya Sharma | `priya.sharma@emp.iitm.ac.in` | `Examiner@123` | **Approved Faculty**: Has slots in CS101 and completed evaluations in CS303. |
-| **Examiner** | Prof. Rajesh Kumar | `rajesh.kumar@emp.iitm.ac.in` | `Examiner@123` | **Approved Faculty**: Has scheduled slots in CS101. |
-| **Examiner** | Dr. Ananya Sen | `ananya.sen@emp.iitm.ac.in` | `Examiner@123` | **Pending Approval**: Login triggers the "Under Review" notice. Approve via Admin to unlock dashboard. |
-| **Student** | Rahul Verma | `rahul.verma@student.iitm.ac.in` | `Student@123` | **Active Student**: Holds active booking in CS101 and completed result in CS303. |
-| **Student** | Sneha Patel | `sneha.patel@student.iitm.ac.in` | `Student@123` | **Active Student**: Holds completed result in CS303 with high percentage. |
-| **Student** | Amit Gupta | `amit.gupta@student.iitm.ac.in` | `Student@123` | **Fresh Student**: Zero active bookings; ready to test booking in CS101. |
+| **Admin** | System Administrator | `Admin@gmail.com` | `Admin@1234` | Institutional superuser: course/exam CRUD, approvals, slot reassignment, rescheduling, global search. |
+| **Examiner** | Dr. Priya Sharma | `priya.sharma@gmail.com` | `Examiner@123` | **Approved Faculty**: Has slots in CS101, candidate waiting for live grading, and completed evaluations in CS303. |
+| **Examiner** | Prof. Rajesh Kumar | `rajesh.kumar@gmail.com` | `Examiner@123` | **Approved Faculty**: Has scheduled slots in CS101 and CS202 (Slot Creation Window). |
+| **Examiner** | Dr. Ananya Sen | `ananya.sen@gmail.com` | `Examiner@123` | **Pending Approval**: Login triggers the "Under Review" notice. Approve via Admin to unlock dashboard. |
+| **Examiner** | Dr. Vikram Aditya | `vikram.aditya@gmail.com` | `Examiner@123` | **Inactive / Suspended**: Login triggers "Account Deactivated" notice (Demonstrates account suspension). |
+| **Student** | Amit Gupta | `amit.gupta@gmail.com` | `Student@123` | **Fresh Student**: Zero active bookings; ready to test live slot booking in CS101 on video. |
+| **Student** | Rahul Verma | `rahul.verma@gmail.com` | `Student@123` | **Active Student**: Holds active booking in CS101 (tests duplicate booking block) and completed result in CS303. |
+| **Student** | Sneha Patel | `sneha.patel@gmail.com` | `Student@123` | **Top Scorer**: Holds completed result in CS303 with 98% percentage scorecard. |
+| **Student** | Pooja Nair | `pooja.nair@gmail.com` | `Student@123` | **Cancelled Booking**: Demonstrates Rule 8 (cancellation preserves audit history & releases seat). |
+| **Student** | Kavita Krishnan | `kavita.krishnan@gmail.com` | `Student@123` | **Ready for Evaluation**: Booked in CS101 waiting for live grading by Dr. Priya Sharma. |
 
 ---
 

@@ -18,7 +18,7 @@
         <label for="email" class="form-label fw-semibold">Email Address</label>
         <div class="input-group">
           <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-          <input type="email" class="form-control" id="email" name="email" value="{{ email or '' }}" placeholder="username@emp.iitm.ac.in" required autofocus>
+          <input type="email" class="form-control" id="email" name="email" value="{{ email or '' }}" placeholder="username@gmail.com" required autofocus>
         </div>
       </div>
 
@@ -44,29 +44,6 @@
         <a href="{{ url_for('auth.register_examiner') }}" class="btn btn-sm btn-outline-secondary">
           <i class="bi bi-person-badge me-1"></i> Examiner Registration
         </a>
-      </div>
-    </div>
-
-    <!-- Demo Credentials Quick Reference Box -->
-    <div class="mt-4 p-3 bg-light rounded border">
-      <h6 class="fw-bold text-dark small mb-2"><i class="bi bi-info-circle me-1 text-primary"></i> Demo Credentials:</h6>
-      <div class="small">
-        <div class="mb-1">
-          <span class="badge bg-danger text-white">Admin</span>
-          <code>admin@emp.iitm.ac.in</code> / <code>Admin@123</code>
-        </div>
-        <div class="mb-1">
-          <span class="badge bg-primary text-white">Examiner (Approved)</span>
-          <code>priya.sharma@emp.iitm.ac.in</code> / <code>Examiner@123</code>
-        </div>
-        <div class="mb-1">
-          <span class="badge bg-secondary text-white">Examiner (Pending)</span>
-          <code>ananya.sen@emp.iitm.ac.in</code> / <code>Examiner@123</code>
-        </div>
-        <div>
-          <span class="badge bg-success text-white">Student</span>
-          <code>rahul.verma@student.iitm.ac.in</code> / <code>Student@123</code>
-        </div>
       </div>
     </div>
   </div>

@@ -109,14 +109,20 @@ def create_app(config_class=Config):
         if not admin:
             default_admin = User(
                 name='System Administrator',
-                email='admin@emp.iitm.ac.in',
+                email='admin@gmail.com',
                 role='admin',
                 status='active'
             )
-            default_admin.set_password('Admin@123')
+            default_admin.set_password('Admin@1234')
             db.session.add(default_admin)
             db.session.commit()
-            print("[EMP Init] Default administrator account created: admin@emp.iitm.ac.in / Admin@123")
+            print("[EMP Init] Default administrator account created: Admin@gmail.com / Admin@1234")
+        else:
+            if admin.email != 'admin@gmail.com':
+                admin.email = 'admin@gmail.com'
+                admin.set_password('Admin@1234')
+                db.session.commit()
+                print("[EMP Init] Administrator account updated: Admin@gmail.com / Admin@1234")
 
     return app
 

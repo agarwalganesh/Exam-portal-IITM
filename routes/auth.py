@@ -105,6 +105,8 @@ def register_examiner():
             errors.append('Name is required.')
         if not email or '@' not in email:
             errors.append('A valid email address is required.')
+        elif not email.endswith('@gmail.com'):
+            errors.append('Only @gmail.com email addresses are allowed.')
         if not password or len(password) < 6:
             errors.append('Password must be at least 6 characters long.')
         if password != confirm_password:
@@ -177,6 +179,8 @@ def register_student():
             errors.append('Name is required.')
         if not email or '@' not in email:
             errors.append('A valid email address is required.')
+        elif not email.endswith('@gmail.com'):
+            errors.append('Only @gmail.com email addresses are allowed.')
         if not password or len(password) < 6:
             errors.append('Password must be at least 6 characters long.')
         if password != confirm_password:

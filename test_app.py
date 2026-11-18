@@ -25,14 +25,14 @@ class EMPTestCase(unittest.TestCase):
     def test_default_admin_created(self):
         admin = User.query.filter_by(role='admin').first()
         self.assertIsNotNone(admin)
-        self.assertEqual(admin.email, 'admin@emp.iitm.ac.in')
-        self.assertTrue(admin.check_password('Admin@123'))
+        self.assertEqual(admin.email, 'admin@gmail.com')
+        self.assertTrue(admin.check_password('Admin@1234'))
 
     def test_examiner_registration_and_approval_workflow(self):
         # Register new examiner
         res = self.client.post('/register/examiner', data={
             'name': 'Dr. Test Examiner',
-            'email': 'test.examiner@emp.iitm.ac.in',
+            'email': 'test.examiner@gmail.com',
             'department': 'Mechanical Engineering',
             'contact_details': '+91 99999 11111',
             'password': 'Password@123',
@@ -40,19 +40,19 @@ class EMPTestCase(unittest.TestCase):
         }, follow_redirects=True)
         self.assertEqual(res.status_code, 200)
 
-        examiner = User.query.filter_by(email='test.examiner@emp.iitm.ac.in').first()
+        examiner = User.query.filter_by(email='test.examiner@gmail.com').first()
         self.assertIsNotNone(examiner)
         self.assertEqual(examiner.role, 'examiner')
         self.assertEqual(examiner.status, 'pending')
 
         # Try to access examiner dashboard while pending -> should be redirected to pending-approval
-        self.client.post('/login', data={'email': 'test.examiner@emp.iitm.ac.in', 'password': 'Password@123'})
+        self.client.post('/login', data={'email': 'test.examiner@gmail.com', 'password': 'Password@123'})
         dash_res = self.client.get('/examiner/dashboard', follow_redirects=True)
         self.assertIn(b'pending-approval', dash_res.request.path.encode())
 
         # Admin logs in and approves examiner
         self.client.get('/logout', follow_redirects=True)
-        self.client.post('/login', data={'email': 'admin@emp.iitm.ac.in', 'password': 'Admin@123'})
+        self.client.post('/login', data={'email': 'admin@gmail.com', 'password': 'Admin@1234'})
         approve_res = self.client.post(f'/admin/examiners/{examiner.id}/approve', follow_redirects=True)
         self.assertEqual(approve_res.status_code, 200)
 
@@ -61,12 +61,12 @@ class EMPTestCase(unittest.TestCase):
 
         # Now examiner logs in and can access dashboard
         self.client.get('/logout', follow_redirects=True)
-        self.client.post('/login', data={'email': 'test.examiner@emp.iitm.ac.in', 'password': 'Password@123'})
+        self.client.post('/login', data={'email': 'test.examiner@gmail.com', 'password': 'Password@123'})
         dash_res2 = self.client.get('/examiner/dashboard')
         self.assertEqual(dash_res2.status_code, 200)
 
     def test_course_crud(self):
-        self.client.post('/login', data={'email': 'admin@emp.iitm.ac.in', 'password': 'Admin@123'})
+        self.client.post('/login', data={'email': 'admin@gmail.com', 'password': 'Admin@1234'})
         # Create course
         create_res = self.client.post('/admin/courses/new', data={
             'course_code': 'TEST101',
@@ -90,7 +90,7 @@ class EMPTestCase(unittest.TestCase):
         self.assertEqual(c_updated.course_name, 'Test Systems 101 Updated')
 
     def test_examination_and_rubrics_crud(self):
-        self.client.post('/login', data={'email': 'admin@emp.iitm.ac.in', 'password': 'Admin@123'})
+        self.client.post('/login', data={'email': 'admin@gmail.com', 'password': 'Admin@1234'})
         course = Course(course_code='CS100', course_name='Computer Science Intro', status='active')
         db.session.add(course)
         db.session.commit()
@@ -129,11 +129,11 @@ class EMPTestCase(unittest.TestCase):
 
     def test_slot_creation_window_and_booking_rules(self):
         # 1. Setup Examiner & Student
-        examiner = User(name='Dr. Examiner', email='dr.ex@emp.iitm.ac.in', role='examiner', status='active')
+        examiner = User(name='Dr. Examiner', email='dr.ex@gmail.com', role='examiner', status='active')
         examiner.set_password('Ex@123')
-        student1 = User(name='Student One', email='s1@student.iitm.ac.in', role='student', status='active')
+        student1 = User(name='Student One', email='s1@gmail.com', role='student', status='active')
         student1.set_password('St@123')
-        student2 = User(name='Student Two', email='s2@student.iitm.ac.in', role='student', status='active')
+        student2 = User(name='Student Two', email='s2@gmail.com', role='student', status='active')
         student2.set_password('St@123')
         course = Course(course_code='CS500', course_name='Advanced CS', status='active')
         db.session.add_all([examiner, student1, student2, course])
@@ -181,7 +181,7 @@ class EMPTestCase(unittest.TestCase):
         db.session.commit()
 
         # Student 1 books slot
-        self.client.post('/login', data={'email': 's1@student.iitm.ac.in', 'password': 'St@123'})
+        self.client.post('/login', data={'email': 's1@gmail.com', 'password': 'St@123'})
         book_res = self.client.post(f'/student/slots/{slot.slot_id}/book', follow_redirects=True)
         self.assertEqual(book_res.status_code, 200)
 
@@ -210,13 +210,13 @@ class EMPTestCase(unittest.TestCase):
 
         # Student 2 tries to book slot 1 which is Full -> should be rejected
         self.client.get('/logout', follow_redirects=True)
-        self.client.post('/login', data={'email': 's2@student.iitm.ac.in', 'password': 'St@123'})
+        self.client.post('/login', data={'email': 's2@gmail.com', 'password': 'St@123'})
         full_res = self.client.post(f'/student/slots/{slot.slot_id}/book', follow_redirects=True)
         self.assertIn(b'full or unavailable', full_res.data)
 
         # Student 1 cancels booking -> seat released (Rule 6) and status set to Cancelled (Rule 8)
         self.client.get('/logout', follow_redirects=True)
-        self.client.post('/login', data={'email': 's1@student.iitm.ac.in', 'password': 'St@123'})
+        self.client.post('/login', data={'email': 's1@gmail.com', 'password': 'St@123'})
         booking1 = Booking.query.filter_by(student_id=student1.id, slot_id=slot.slot_id).first()
         cancel_res = self.client.post(f'/student/bookings/{booking1.booking_id}/cancel', follow_redirects=True)
         self.assertEqual(cancel_res.status_code, 200)
@@ -230,9 +230,9 @@ class EMPTestCase(unittest.TestCase):
     def test_examiner_evaluation_and_result(self):
         # Setup Examiner, Student, Course, Exam, Rubric, Slot, Booking
         now = datetime.now()
-        examiner = User(name='Dr. Smith', email='smith@emp.iitm.ac.in', role='examiner', status='active')
+        examiner = User(name='Dr. Smith', email='smith@gmail.com', role='examiner', status='active')
         examiner.set_password('Smith@123')
-        student = User(name='Alice', email='alice@student.iitm.ac.in', role='student', status='active')
+        student = User(name='Alice', email='alice@gmail.com', role='student', status='active')
         student.set_password('Alice@123')
         course = Course(course_code='CS600', course_name='Security', status='active')
         db.session.add_all([examiner, student, course])
@@ -280,7 +280,7 @@ class EMPTestCase(unittest.TestCase):
         db.session.commit()
 
         # Examiner logs in and evaluates Alice
-        self.client.post('/login', data={'email': 'smith@emp.iitm.ac.in', 'password': 'Smith@123'})
+        self.client.post('/login', data={'email': 'smith@gmail.com', 'password': 'Smith@123'})
 
         # Validation: Marks cannot exceed maximum (e.g. entering 55 when max is 50)
         invalid_eval = self.client.post(f'/examiner/evaluate/{booking.booking_id}', data={
@@ -304,7 +304,7 @@ class EMPTestCase(unittest.TestCase):
 
         # Alice logs in and checks scorecard
         self.client.get('/logout', follow_redirects=True)
-        self.client.post('/login', data={'email': 'alice@student.iitm.ac.in', 'password': 'Alice@123'})
+        self.client.post('/login', data={'email': 'alice@gmail.com', 'password': 'Alice@123'})
         result_res = self.client.get(f'/student/results/{booking.booking_id}')
         self.assertEqual(result_res.status_code, 200)
         self.assertIn(b'46.5', result_res.data)
